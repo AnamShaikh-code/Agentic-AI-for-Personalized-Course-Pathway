@@ -57,9 +57,8 @@ def ask_granite(user_message: str, profile: dict) -> str:
     if client:
         try:
             from ibm_watsonx_ai.foundation_models import ModelInference
-            from ibm_watsonx_ai.metanames import GenTextParamsMetaNames as Params
 
-            system = (
+            system_prompt = (
                 f"You are LearnMate, an AI learning coach powered by IBM Granite.\n"
                 f"Student: {profile.get('name','Student')}, "
                 f"Track: {profile.get('track','Data Science')}, "
@@ -68,21 +67,24 @@ def ask_granite(user_message: str, profile: dict) -> str:
                 f"Skills: {', '.join(f'{k}: {v}%' for k,v in profile.get('skills',{}).items())}.\n"
                 f"Provide personalized, encouraging, actionable guidance. Use markdown for structure."
             )
-            prompt = f"{system}\n\nStudent: {user_message}\nLearnMate AI Coach:"
 
             model = ModelInference(
                 model_id=model_id,
                 api_client=client,
                 project_id=project_id,
+            )
+            # Use the current chat API (generate_text is deprecated)
+            response = model.chat(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_message},
+                ],
                 params={
-                    Params.MAX_NEW_TOKENS: 700,
-                    Params.MIN_NEW_TOKENS: 30,
-                    Params.DECODING_METHOD: "greedy",
-                    Params.REPETITION_PENALTY: 1.1,
-                    Params.STOP_SEQUENCES: ["\nStudent:"],
+                    "max_tokens": 700,
+                    "temperature": 0,
                 },
             )
-            result = model.generate_text(prompt=prompt)
+            result = response["choices"][0]["message"]["content"]
             return result.strip()
         except Exception as e:
             print(f"[IBM Granite] generation error: {e}")
