@@ -121,6 +121,19 @@ learnmate-flask/
 ```
 
 ---
+## 📸 Application Screenshots
+
+### Home Page
+"D:\Projects\Agentic AI\Screenshots\Screenshot .png"
+
+### Dashboard
+"D:\Projects\Agentic AI\Screenshots\2.png"
+
+### AI Learning Coach
+"D:\Projects\Agentic AI\Screenshots\5.png"
+
+### Career Roadmap
+"D:\Projects\Agentic AI\Screenshots\4.png"
 
 ## 🔒 Security
 
@@ -136,6 +149,9 @@ learnmate-flask/
 This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
 ---
+## 👩‍💻 Developed By
+
+## Anam Shaikh
 
 <div align="center">
   Built with Deligence using IBM Granite &amp; Flask &nbsp;|&nbsp; Problem Statement #12
