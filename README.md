@@ -133,7 +133,7 @@ learnmate-flask/
 "D:\Projects\Agentic AI\Screenshots\5.png"
 
 ### Career Roadmap
-"D:\Projects\Agentic AI\Screenshots\4.png"
+D:\Projects\Agentic AI\Screenshots\4.png
 
 ## 🔒 Security
 
