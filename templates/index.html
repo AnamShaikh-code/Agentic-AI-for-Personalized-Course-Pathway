@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LearnMate – AI-Powered Personalized Learning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg:#0a0e1a; --surface:#111827; --surface2:#1a2236; --border:#1e2d45; --text:#e8edf5; --muted:#8b9dc0; --accent:#4f8ef7; --accent2:#7c5cd8; --accent3:#00c9a7; --accent4:#f59e0b; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; line-height: 1.6; }
+    nav { position: fixed; top: 0; width: 100%; z-index: 100; backdrop-filter: blur(16px); background: rgba(10,14,26,0.85); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 700; text-decoration: none; color: var(--text); }
+    .logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--text); }
+    .btn { padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface); color: var(--text); border-color: var(--accent); }
+    .btn-lg { padding: 0.8rem 2rem; font-size: 1rem; border-radius: 10px; }
+    section { padding: 5rem 2rem; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 100px 2rem 4rem; position: relative; text-align: center; }
+    .hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(79,142,247,0.12) 0%, transparent 70%), radial-gradient(ellipse 60% 40% at 80% 80%, rgba(124,92,216,0.1) 0%, transparent 60%); }
+    .hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(79,142,247,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(79,142,247,0.04) 1px, transparent 1px); background-size: 60px 60px; }
+    .hero-content { position: relative; z-index: 1; max-width: 860px; }
+    .badge-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 6px 16px; border-radius: 100px; font-size: 0.8rem; font-weight: 600; margin-bottom: 1.5rem; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+    h1 { font-size: clamp(2.2rem, 5vw, 4rem); font-weight: 800; line-height: 1.15; margin-bottom: 1.5rem; }
+    .grad { background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-desc { font-size: 1.1rem; color: var(--muted); max-width: 600px; margin: 0 auto 2.5rem; }
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem; }
+    .hero-stats { display: flex; gap: 2.5rem; justify-content: center; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-num { font-size: 1.75rem; font-weight: 700; }
+    .stat-lbl { font-size: 0.8rem; color: var(--muted); }
+    .section-tag { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 0.75rem; }
+    h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 700; margin-bottom: 0.75rem; }
+    .sec-sub { color: var(--muted); font-size: 1.05rem; max-width: 540px; margin: 0 auto; }
+    .section-header { text-align: center; margin-bottom: 3.5rem; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .feat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; transition: all 0.3s; }
+    .feat-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+    .feat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 1rem; }
+    .fi-b { background: rgba(79,142,247,0.15); } .fi-p { background: rgba(124,92,216,0.15); } .fi-g { background: rgba(0,201,167,0.15); }
+    .fi-y { background: rgba(245,158,11,0.15); } .fi-r { background: rgba(239,68,68,0.15); } .fi-c { background: rgba(6,182,212,0.15); }
+    .feat-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .feat-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    .how-section { background: var(--surface); }
+    .steps { display: flex; flex-direction: column; gap: 0; max-width: 700px; margin: 0 auto; }
+    .step { display: flex; gap: 1.5rem; position: relative; padding-bottom: 2.5rem; }
+    .step:last-child { padding-bottom: 0; }
+    .step-left { display: flex; flex-direction: column; align-items: center; }
+    .step-num { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .step-line { width: 2px; flex: 1; background: linear-gradient(to bottom, var(--accent), transparent); margin-top: 6px; min-height: 40px; }
+    .step:last-child .step-line { display: none; }
+    .step-content { padding-top: 8px; }
+    .step-title { font-weight: 600; font-size: 1rem; margin-bottom: 0.3rem; }
+    .step-desc { color: var(--muted); font-size: 0.9rem; }
+    .paths-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .path-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.2s; }
+    .path-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .path-emoji { font-size: 2rem; margin-bottom: 0.75rem; }
+    .path-name  { font-weight: 600; font-size: 0.95rem; }
+    .path-level { font-size: 0.8rem; color: var(--muted); }
+    .ibm-section { background: linear-gradient(135deg, rgba(79,142,247,0.06), rgba(124,92,216,0.06)); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .ibm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .tech-badges { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
+    .tech-badge { background: var(--surface); border: 1px solid var(--border); padding: 5px 13px; border-radius: 8px; font-size: 0.8rem; font-weight: 500; }
+    .ibm-rows { display: flex; flex-direction: column; gap: 0.875rem; }
+    .ibm-row { display: flex; align-items: center; gap: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; }
+    .ibm-row-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .ibm-row-lbl  { font-weight: 600; font-size: 0.9rem; }
+    .ibm-row-sub  { color: var(--muted); font-size: 0.8rem; }
+    .cta-section { text-align: center; }
+    .cta-box { background: linear-gradient(135deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 24px; padding: 4rem 2rem; }
+    footer { border-top: 1px solid var(--border); padding: 2rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+    @media (max-width: 768px) { .nav-links { display: none; } .ibm-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">🎓</div> LearnMate</a>
+  <div class="nav-links"><a href="#features">Features</a><a href="#how">How It Works</a><a href="#paths">Paths</a><a href="#ibm">Technology</a></div>
+  <div style="display:flex;gap:0.75rem">
+    <a href="/dashboard" class="btn btn-ghost">Sign In</a>
+    <a href="/dashboard" class="btn btn-primary">Get Started →</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg"></div><div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="badge-pill"><span class="dot"></span> Powered by IBM Granite AI</div>
+    <h1>Your AI-Powered<br/><span class="grad">Personalized Learning Coach</span></h1>
+    <p class="hero-desc">LearnMate understands your interests, assesses your skills, and builds a dynamic learning roadmap — adapting as you grow. From Frontend Development to Cybersecurity, your path starts here.</p>
+    <div class="hero-actions">
+      <a href="/dashboard" class="btn btn-primary btn-lg">Start Learning Free →</a>
+      <a href="#how"       class="btn btn-ghost   btn-lg">See How It Works</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-num">8</div><div class="stat-lbl">Career Tracks</div></div>
+      <div class="stat"><div class="stat-num">IBM</div><div class="stat-lbl">Granite AI</div></div>
+      <div class="stat"><div class="stat-num">4</div><div class="stat-lbl">Skill Levels</div></div>
+      <div class="stat"><div class="stat-num">24/7</div><div class="stat-lbl">AI Coach</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Platform Features</div>
+      <h2>Everything You Need to <span class="grad">Level Up</span></h2>
+      <p class="sec-sub">An end-to-end intelligent learning ecosystem built around your unique goals.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card"><div class="feat-icon fi-b">🧠</div><div class="feat-title">AI Skill Assessment</div><div class="feat-desc">Adaptive evaluation of your current knowledge — IBM Granite maps you to the exact right level.</div></div>
+      <div class="feat-card"><div class="feat-icon fi-p">🗺️</div><div class="feat-title">Personalized Roadmaps</div><div class="feat-desc">Structured Beginner → Intermediate → Advanced paths tailored to your goals and interests.</div></div>
+      <div class="feat-card"><div class="feat-icon fi-g">💬</div><div class="feat-title">AI Coach Chat</div><div class="feat-desc">IBM Granite powers real-time coaching — ask anything about courses, careers, or code.</div></div>
+      <div class="feat-card"><div class="feat-icon fi-y">📊</div><div class="feat-title">Progress Dashboard</div><div class="feat-desc">Visual skill charts, badges, streaks, and milestone tracking — all in one clean view.</div></div>
+      <div class="feat-card"><div class="feat-icon fi-c">🎯</div><div class="feat-title">Smart Recommendations</div><div class="feat-desc">Courses dynamically recommended based on your performance and evolving career goals.</div></div>
+      <div class="feat-card"><div class="feat-icon fi-r">🔄</div><div class="feat-title">Adaptive Learning</div><div class="feat-desc">Your roadmap evolves with you — IBM Granite continuously re-calibrates based on progress.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="how-section" id="how">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">How It Works</div>
+      <h2>From Profile to <span class="grad">Career-Ready</span> in 4 Steps</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div><div class="step-content"><div class="step-title">Build Your Student Profile</div><div class="step-desc">Share your interests, background, and career goals. The AI uses this to understand your context.</div></div></div>
+      <div class="step"><div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div><div class="step-content"><div class="step-title">Complete Skill Assessment</div><div class="step-desc">Take an adaptive quiz to establish your current skill level across chosen domains.</div></div></div>
+      <div class="step"><div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div><div class="step-content"><div class="step-title">Receive Your AI Roadmap</div><div class="step-desc">IBM Granite generates a personalized roadmap with curated courses and milestones.</div></div></div>
+      <div class="step"><div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div><div class="step-content"><div class="step-title">Learn, Grow & Adapt</div><div class="step-desc">Track progress, chat with your AI coach, and watch your roadmap evolve as you advance.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="paths">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Learning Paths</div>
+      <h2>Explore <span class="grad">Career Tracks</span></h2>
+    </div>
+    <div class="paths-grid">
+      <div class="path-card"><div class="path-emoji">💻</div><div class="path-name">Frontend Development</div><div class="path-level">React, CSS, JavaScript</div></div>
+      <div class="path-card"><div class="path-emoji">🔒</div><div class="path-name">Cybersecurity</div><div class="path-level">Ethical Hacking, SOC</div></div>
+      <div class="path-card"><div class="path-emoji">🎨</div><div class="path-name">UI/UX Design</div><div class="path-level">Figma, Research, Prototyping</div></div>
+      <div class="path-card"><div class="path-emoji">🤖</div><div class="path-name">AI & Machine Learning</div><div class="path-level">Python, TensorFlow, LLMs</div></div>
+      <div class="path-card"><div class="path-emoji">☁️</div><div class="path-name">Cloud Computing</div><div class="path-level">IBM Cloud, AWS, DevOps</div></div>
+      <div class="path-card"><div class="path-emoji">📊</div><div class="path-name">Data Science</div><div class="path-level">Analytics, Visualization</div></div>
+      <div class="path-card"><div class="path-emoji">⚙️</div><div class="path-name">Backend Development</div><div class="path-level">Node.js, APIs, Databases</div></div>
+      <div class="path-card"><div class="path-emoji">📱</div><div class="path-name">Mobile Development</div><div class="path-level">React Native, Flutter</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="ibm-section" id="ibm">
+  <div class="container">
+    <div class="ibm-grid">
+      <div>
+        <div class="section-tag">Technology Stack</div>
+        <h2>Powered by <span class="grad">IBM Granite AI</span></h2>
+        <p style="color:var(--muted);margin:1rem 0;line-height:1.7;">LearnMate uses <strong style="color:var(--text)">Python Flask</strong> + <strong style="color:var(--text)">IBM Granite</strong> via the official <code style="color:var(--accent3);background:var(--surface2);padding:2px 6px;border-radius:4px">ibm-watsonx-ai</code> SDK to deliver intelligent, personalized learning recommendations in real-time.</p>
+        <div class="tech-badges">
+          <span class="tech-badge">IBM Granite 3.3</span><span class="tech-badge">IBM Cloud Lite</span>
+          <span class="tech-badge">watsonx.ai</span><span class="tech-badge">Python Flask</span>
+          <span class="tech-badge">ibm-watsonx-ai SDK</span>
+        </div>
+      </div>
+      <div class="ibm-rows">
+        <div class="ibm-row"><div class="ibm-row-icon">🔐</div><div><div class="ibm-row-lbl">Enterprise Security</div><div class="ibm-row-sub">API keys stored server-side in Flask session</div></div></div>
+        <div class="ibm-row"><div class="ibm-row-icon">⚡</div><div><div class="ibm-row-lbl">Real-Time Generation</div><div class="ibm-row-sub">Instant responses via Granite LLM inference</div></div></div>
+        <div class="ibm-row"><div class="ibm-row-icon">🌐</div><div><div class="ibm-row-lbl">IBM Cloud Lite</div><div class="ibm-row-sub">Free tier — zero infrastructure cost</div></div></div>
+        <div class="ibm-row"><div class="ibm-row-icon">🧩</div><div><div class="ibm-row-lbl">Contextual Intelligence</div><div class="ibm-row-sub">Student profile injected as system prompt</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-box">
+      <h2>Ready to Build Your <span class="grad">Learning Roadmap?</span></h2>
+      <p style="color:var(--muted);margin:1rem auto 2rem;max-width:500px">Join thousands of students who found their path with LearnMate's AI-powered coaching.</p>
+      <a href="/dashboard" class="btn btn-primary btn-lg">Launch Dashboard →</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>© 2025 LearnMate – Agentic AI for Personalized Course Pathways &nbsp;·&nbsp; Powered by <strong>IBM Granite</strong> &nbsp;·&nbsp; Python Flask Backend &nbsp;·&nbsp; Problem Statement #12</p>
+</footer>
+</body>
+</html>

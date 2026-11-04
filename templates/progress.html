@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Progress Tracker{% endblock %}
+{% block topbar_title %}Progress Tracker{% endblock %}
+{% block topbar_sub %}Track your Data Science & CS achievements, skills, and milestones.{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="grid-4 mb-3">
+  <div class="stat-card"><div class="stat-icon si-blue">📚</div><div><div class="stat-num">{{ profile.courses_completed }}</div><div class="stat-label">Total Completed</div></div></div>
+  <div class="stat-card"><div class="stat-icon si-yellow">⏱️</div><div><div class="stat-num">{{ profile.hours_spent }}h</div><div class="stat-label">Learning Time</div></div></div>
+  <div class="stat-card"><div class="stat-icon si-green">🏆</div><div><div class="stat-num">{{ profile.badges | length }}</div><div class="stat-label">Badges Earned</div></div></div>
+  <div class="stat-card"><div class="stat-icon si-purple">🔥</div><div><div class="stat-num">{{ profile.streak }}</div><div class="stat-label">Day Streak</div></div></div>
+</div>
+
+<div class="grid-2" style="align-items:start">
+  <!-- Skill Chart -->
+  <div class="card">
+    <div class="sec-title mb-3">🧰 Skills Acquired</div>
+    {% set skill_colors = {
+      'Python':             ('pf-green',  'text-green'),
+      'Statistics':         ('pf-blue',   'text-accent'),
+      'Machine Learning':   ('pf-purple', 'text-yellow'),
+      'SQL':                ('pf-yellow', 'text-yellow'),
+      'Data Visualization': ('pf-blue',   'text-muted'),
+      'Deep Learning':      ('pf-purple', 'text-muted')
+    } %}
+    {% for skill, level in profile.skills.items() %}
+    {% set cls, tcls = skill_colors.get(skill, ('pf-blue','text-muted')) %}
+    <div class="skill-bar-row">
+      <div class="skill-name">{{ skill }}</div>
+      <div class="skill-bar"><div class="progress-fill {{ cls }}" style="width:{{ level }}%"></div></div>
+      <div class="skill-val {{ tcls }}">{{ level }}%</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div>
+    <!-- Weekly Activity Bar Chart -->
+    <div class="card mb-3">
+      <div class="sec-title mb-3">📅 Weekly Activity (hours)</div>
+      <div style="display:flex;gap:6px;align-items:flex-end;height:90px">
+        {% set days = [('M',50),('T',70),('W',95),('T',60),('F',80),('S',35),('S',25)] %}
+        {% for day, pct in days %}
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="width:100%;background:rgba(79,142,247,{{ pct/100 }});border-radius:4px 4px 0 0;height:{{ pct }}%"></div>
+          <div class="text-xs text-muted">{{ day }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Milestones Timeline -->
+    <div class="card">
+      <div class="sec-title mb-3">🏁 Recent Milestones</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot tl-done"></div>
+          <div class="tl-title">Completed: Python for Data Science & AI</div>
+          <div class="tl-meta">3 days ago · +200 XP</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-done"></div>
+          <div class="tl-title">Badge Earned: Fast Learner ⚡</div>
+          <div class="tl-meta">5 days ago</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-done"></div>
+          <div class="tl-title">Completed: SQL for Data Analysis</div>
+          <div class="tl-meta">1 week ago · +150 XP</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-active"></div>
+          <div class="tl-title">In Progress: Machine Learning with scikit-learn</div>
+          <div class="tl-meta">Started 4 days ago · 55% complete</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-todo"></div>
+          <div class="tl-title">Upcoming: Feature Engineering & Model Selection</div>
+          <div class="tl-meta">Next recommended step by IBM Granite</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

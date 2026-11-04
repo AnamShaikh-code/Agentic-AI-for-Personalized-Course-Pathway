@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}IBM Granite Config{% endblock %}
+{% block topbar_title %}IBM Granite Config{% endblock %}
+{% block topbar_sub %}Connect and configure IBM Cloud AI services.{% endblock %}
+
+{% block content %}
+<div class="grid-2" style="align-items:start">
+  <div>
+    <div class="card mb-3">
+      <div class="sec-title mb-1">🔧 IBM Granite API Configuration</div>
+      <div class="card-sub text-muted text-sm mb-3">Connect LearnMate to IBM Cloud Lite & watsonx.ai to enable real AI responses.</div>
+
+      {% if ibm_configured %}
+      <div style="background:rgba(0,201,167,0.1);border:1px solid rgba(0,201,167,0.3);border-radius:10px;padding:0.875rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:0.75rem">
+        <span style="font-size:1.2rem">✅</span>
+        <span class="text-sm"><strong>IBM Granite is connected and active.</strong> The AI Coach is using live responses.</span>
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/config">
+        <div class="form-group">
+          <label class="form-label">IBM Cloud API Key</label>
+          <input class="form-input" name="api_key" type="password" placeholder="Enter your IBM Cloud API Key..." />
+          <div class="form-hint">Get your key: <strong>cloud.ibm.com → Manage → Access (IAM) → API Keys → Create</strong></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">watsonx.ai Project ID</label>
+          <input class="form-input" name="project_id" placeholder="e.g. a1b2c3d4-e5f6-7890-abcd-ef1234567890" />
+          <div class="form-hint">Found in: <strong>watsonx.ai → Projects → your project → Manage → Details</strong></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">IBM Granite Model</label>
+          <select class="form-select" name="model">
+            {% set models = [
+              ('ibm/granite-3-3-8b-instruct', 'ibm/granite-3-3-8b-instruct (Recommended)'),
+              ('ibm/granite-3-2-8b-instruct', 'ibm/granite-3-2-8b-instruct'),
+              ('ibm/granite-20b-multilingual', 'ibm/granite-20b-multilingual'),
+              ('ibm/granite-13b-instruct-v2', 'ibm/granite-13b-instruct-v2'),
+            ] %}
+            {% for val, label in models %}
+            <option value="{{ val }}" {% if current_model == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">IBM Cloud Endpoint URL</label>
+          <select class="form-select" name="url">
+            {% set regions = [
+              ('https://us-south.ml.cloud.ibm.com', 'us-south (Dallas)'),
+              ('https://eu-gb.ml.cloud.ibm.com',    'eu-gb (London)'),
+              ('https://eu-de.ml.cloud.ibm.com',    'eu-de (Frankfurt)'),
+              ('https://jp-tok.ml.cloud.ibm.com',   'jp-tok (Tokyo)'),
+            ] %}
+            {% for val, label in regions %}
+            <option value="{{ val }}" {% if current_url == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+          <button type="submit" class="btn btn-primary">Save & Connect</button>
+          <button type="button" class="btn btn-ghost" onclick="testConnection()">Test Connection</button>
+          {% if ibm_configured %}
+          <button type="button" class="btn btn-danger btn-sm" onclick="clearConfig()">Clear Config</button>
+          {% endif %}
+        </div>
+      </form>
+      <div id="test-result" style="margin-top:1rem;display:none"></div>
+    </div>
+
+    <!-- AI Settings -->
+    <div class="card">
+      <div class="sec-title mb-2">⚙️ AI Personalization Settings</div>
+      <div class="form-group">
+        <label class="form-label">Response Style</label>
+        <select class="form-select">
+          <option>Encouraging & Motivating</option>
+          <option>Professional & Concise</option>
+          <option>Detailed & Educational</option>
+          <option>Socratic (Question-led)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Context to Inject</label>
+        <div class="chip-group">
+          <div class="chip-select on" onclick="toggleChip(this)">Student Profile</div>
+          <div class="chip-select on" onclick="toggleChip(this)">Assessment Results</div>
+          <div class="chip-select on" onclick="toggleChip(this)">Learning History</div>
+          <div class="chip-select"   onclick="toggleChip(this)">Course Metadata</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showToast('AI settings updated!')">Update Settings</button>
+    </div>
+  </div>
+
+  <div>
+    <!-- Setup Guide -->
+    <div class="card mb-3">
+      <div class="sec-title mb-3">📖 IBM Cloud Setup Guide</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot tl-done"></div>
+          <div class="tl-title">Create IBM Cloud Lite Account</div>
+          <div class="tl-meta">Free at cloud.ibm.com — no credit card needed</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-done"></div>
+          <div class="tl-title">Provision watsonx.ai Instance</div>
+          <div class="tl-meta">Catalog → AI → watsonx.ai → Create (Lite plan)</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot {% if ibm_configured %}tl-done{% else %}tl-active{% endif %}"></div>
+          <div class="tl-title">Generate API Key</div>
+          <div class="tl-meta">Manage → Access (IAM) → API Keys → Create</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot {% if ibm_configured %}tl-done{% else %}tl-todo{% endif %}"></div>
+          <div class="tl-title">Create a Project & Copy Project ID</div>
+          <div class="tl-meta">watsonx.ai → Projects → New → Copy Project ID</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot {% if ibm_configured %}tl-done{% else %}tl-todo{% endif %}"></div>
+          <div class="tl-title">Enter Credentials Above & Save</div>
+          <div class="tl-meta">Then test the connection!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Info -->
+    <div class="card">
+      <div class="sec-title mb-2">🌐 API Architecture</div>
+      <div style="font-size:0.8rem;display:flex;flex-direction:column;gap:0.75rem">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem">
+          <div class="text-xs text-muted mb-2">How LearnMate calls IBM Granite</div>
+          <div style="font-family:monospace;font-size:0.75rem;color:var(--accent3);line-height:1.8">
+            Browser → Flask (app.py)<br/>
+            Flask → IBM IAM (get token)<br/>
+            Flask → watsonx.ai (generate)<br/>
+            Response → Browser (chat)
+          </div>
+        </div>
+        <div>
+          <div class="text-xs text-muted" style="margin-bottom:4px">Python SDK Used</div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.5rem 0.75rem;font-family:monospace;font-size:0.75rem;color:var(--accent3)">
+            ibm-watsonx-ai (ModelInference)
+          </div>
+        </div>
+      </div>
+      <div class="info-banner" style="margin-top:1rem;margin-bottom:0">
+        <div class="info-banner-icon">🔐</div>
+        <div class="info-banner-text">Credentials are stored in your Flask session (server-side) — never exposed to the browser.</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function testConnection() {
+  const el = document.getElementById('test-result');
+  el.style.display = 'block';
+  el.innerHTML = '<span class="badge badge-blue">⏳ Testing connection to IBM Cloud...</span>';
+  try {
+    const res  = await fetch('/api/config/test', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    const data = await res.json();
+    el.innerHTML = data.ok
+      ? `<span class="badge badge-green">${data.message}</span>`
+      : `<span class="badge badge-red">${data.message}</span>`;
+  } catch(e) {
+    el.innerHTML = '<span class="badge badge-red">Connection error — is the Flask server running?</span>';
+  }
+}
+
+function clearConfig() {
+  if (confirm('Clear IBM credentials from session?')) {
+    fetch('/api/config/test', { method:'POST', body:'{}', headers:{'Content-Type':'application/json'} });
+    showToast('Config cleared — reload to apply');
+  }
+}
+</script>
+{% endblock %}

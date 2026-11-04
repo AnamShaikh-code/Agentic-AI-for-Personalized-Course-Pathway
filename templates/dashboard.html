@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard Overview{% endblock %}
+{% block topbar_sub %}Welcome back, {{ profile.name }}! Let's keep learning.{% endblock %}
+
+{% block content %}
+<!-- Welcome Hero -->
+<div class="welcome-hero mb-3">
+  <div class="welcome-glow"></div>
+  <div class="welcome-title">Good morning, {{ profile.name.split()[0] }}! 👋</div>
+  <div class="welcome-sub">
+    You've completed <strong style="color:var(--text)">{{ profile.courses_completed }} courses</strong> and have a
+    <strong style="color:var(--text)">{{ profile.streak }}-day streak</strong>.
+    Your {{ profile.track }} roadmap is <strong style="color:var(--accent)">{{ profile.progress }}% complete</strong> — keep it up!
+  </div>
+  <div class="welcome-actions">
+    <a href="/roadmap" class="btn btn-primary">Continue Roadmap →</a>
+    <a href="/chat"    class="btn btn-ghost">Ask AI Coach</a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="grid-4 mb-3">
+  <div class="stat-card">
+    <div class="stat-icon si-blue">📚</div>
+    <div><div class="stat-num">{{ profile.courses_completed }}</div><div class="stat-label">Courses Completed</div><div class="stat-change">↑ +2 this week</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon si-green">🏆</div>
+    <div><div class="stat-num">{{ profile.skills | length }}</div><div class="stat-label">Skills Tracked</div><div class="stat-change">↑ +1 this month</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon si-purple">🔥</div>
+    <div><div class="stat-num">{{ profile.streak }}</div><div class="stat-label">Day Streak</div><div class="stat-change">Personal best!</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon si-yellow">⏱️</div>
+    <div><div class="stat-num">{{ profile.hours_spent }}h</div><div class="stat-label">Learning Time</div><div class="stat-change">↑ +8h this week</div></div>
+  </div>
+</div>
+
+<!-- Bottom Grid -->
+<div class="grid-2 mb-3">
+  <!-- Roadmap Progress -->
+  <div class="card">
+    <div class="sec-head">
+      <div class="sec-title">🗺️ Roadmap Progress</div>
+      <a href="/roadmap" class="sec-action">View All</a>
+    </div>
+    {% set tracks = [
+      (profile.track, profile.progress, 'pf-blue', 'text-accent'),
+      ('Computer Science Fundamentals', 72, 'pf-green', 'text-green'),
+      ('Deep Learning & Neural Networks', 28, 'pf-yellow', 'text-yellow')
+    ] %}
+    {% for tname, pct, cls, tcls in tracks %}
+    <div style="margin-bottom:1rem">
+      <div class="flex items-center justify-between" style="margin-bottom:0.4rem">
+        <span class="text-sm fw-600">{{ tname }}</span>
+        <span class="text-sm {{ tcls }}">{{ pct }}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill {{ cls }}" style="width:{{ pct }}%"></div></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Continue Learning -->
+  <div class="card">
+    <div class="sec-head">
+      <div class="sec-title">📅 Continue Learning</div>
+      <a href="/recommendations" class="sec-action">All Courses</a>
+    </div>
+    {% set upcoming = [
+      ('🐍', 'Machine Learning with scikit-learn', 55),
+      ('📊', 'Data Visualization with Plotly', 40),
+      ('🗄️', 'SQL for Data Analysis', 70),
+    ] %}
+    {% for emoji, title, pct in upcoming %}
+    <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:1.4rem">{{ emoji }}</div>
+      <div style="flex:1;min-width:0">
+        <div class="text-sm fw-600" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ title }}</div>
+        <div class="progress-bar" style="margin-top:4px"><div class="progress-fill pf-blue" style="width:{{ pct }}%"></div></div>
+      </div>
+      <div class="text-sm text-accent fw-600">{{ pct }}%</div>
+    </div>
+    {% endfor %}
+    <a href="/recommendations" class="btn btn-ghost btn-sm" style="width:100%;margin-top:0.75rem;justify-content:center">View All Courses</a>
+  </div>
+</div>
+
+<!-- AI Insights -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-title">🤖 AI Insights from IBM Granite</div>
+    <span class="badge badge-blue">● Live</span>
+  </div>
+  {% set insights = [
+    ('💡', 'Your Python skills (80%) are strong. The next highest-impact skill to develop is <strong style="color:var(--text)">Machine Learning with scikit-learn</strong> — it directly unlocks data scientist roles.'),
+    ('📈', 'Based on your learning pace, you will complete the ' + profile.track + ' roadmap in approximately 4 weeks — right on target for your career goal!'),
+    ('🎯', 'IBM Granite recommends adding <strong style="color:var(--text)">IBM Watson Studio & watsonx.ai</strong> to your roadmap. These are in-demand enterprise AI skills that set you apart from other candidates.'),
+  ] %}
+  {% for icon, text in insights %}
+  <div style="display:flex;gap:0.875rem;padding:0.875rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:0.75rem">
+    <div style="font-size:1.3rem;flex-shrink:0">{{ icon }}</div>
+    <div class="text-sm text-muted" style="line-height:1.65">{{ text | safe }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

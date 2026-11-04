@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+{% block title %}Learning Roadmap{% endblock %}
+{% block topbar_title %}Learning Roadmap{% endblock %}
+{% block topbar_sub %}Interactive visual flowchart — switch roles, explore modules, track progress.{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── ROLE CHIPS ─────────────────────────────────────────────── */
+  .role-chips { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.25rem; }
+  .role-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 16px; border-radius:100px; font-size:0.8rem; font-weight:600;
+    border:1px solid var(--border); background:var(--surface2); cursor:pointer;
+    color:var(--muted); transition:all 0.2s; user-select:none;
+  }
+  .role-chip:hover { border-color:var(--accent); color:var(--text); }
+  .role-chip.active { color:#fff; border-color:transparent; }
+
+  /* ── LAYOUT ─────────────────────────────────────────────────── */
+  .rm-layout { display:grid; grid-template-columns:1fr 320px; gap:1.25rem; align-items:start; }
+  @media(max-width:1100px){ .rm-layout { grid-template-columns:1fr; } }
+
+  /* ── FLOWCHART CONTAINER ─────────────────────────────────────── */
+  .flowchart-wrap {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; overflow:hidden;
+  }
+  .flowchart-header {
+    padding:1rem 1.5rem; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .flowchart-inner { padding:1.5rem; overflow-x:auto; }
+  #roadmap-svg { display:block; margin:0 auto; min-width:600px; }
+
+  /* ── SVG NODE STYLES ─────────────────────────────────────────── */
+  .rm-node { cursor:pointer; transition:filter 0.2s; }
+  .rm-node:hover { filter:brightness(1.15); }
+  .rm-node rect { rx:10; transition:all 0.2s; }
+  .rm-node.selected rect { stroke-width:2.5 !important; }
+  .node-title { font-family:'Inter',sans-serif; font-size:11.5px; font-weight:600; fill:#e8edf5; pointer-events:none; }
+  .node-meta  { font-family:'Inter',sans-serif; font-size:10px;   fill:#8b9dc0;  pointer-events:none; }
+  .tier-label { font-family:'Inter',sans-serif; font-size:12px; font-weight:700; letter-spacing:0.5px; }
+  .connector  { stroke-dasharray:5,4; opacity:0.45; }
+
+  /* ── LEGEND ──────────────────────────────────────────────────── */
+  .legend { display:flex; gap:1rem; flex-wrap:wrap; padding:0.75rem 1.5rem; border-top:1px solid var(--border); }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--muted); }
+  .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+
+  /* ── DETAIL PANEL ────────────────────────────────────────────── */
+  .detail-panel {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; overflow:hidden;
+    transition: opacity 0.25s;
+  }
+  .detail-panel.hidden { opacity:0.4; pointer-events:none; }
+  .dp-header { padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+  .dp-tier-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 10px; border-radius:100px; font-size:0.7rem; font-weight:700;
+    letter-spacing:0.5px; text-transform:uppercase; margin-bottom:0.6rem;
+  }
+  .dp-title { font-size:1rem; font-weight:700; line-height:1.35; margin-bottom:0.3rem; }
+  .dp-desc  { font-size:0.82rem; color:var(--muted); line-height:1.6; }
+  .dp-body  { padding:1.25rem; }
+  .dp-row   { display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0; border-bottom:1px solid var(--border); font-size:0.82rem; }
+  .dp-row:last-child { border-bottom:none; }
+  .dp-row-label { color:var(--muted); }
+  .dp-status-badge {
+    padding:3px 10px; border-radius:100px; font-size:0.72rem; font-weight:600;
+  }
+  .status-done   { background:rgba(34,197,94,0.15);  color:#22c55e; }
+  .status-active { background:rgba(79,142,247,0.15); color:#4f8ef7; }
+  .status-todo   { background:rgba(245,158,11,0.15); color:#f59e0b; }
+  .status-locked { background:rgba(139,157,192,0.12);color:#8b9dc0; }
+  .dp-actions { padding:1rem 1.25rem; border-top:1px solid var(--border); display:flex; gap:0.6rem; flex-wrap:wrap; }
+
+  /* ── PROGRESS RING ───────────────────────────────────────────── */
+  .progress-ring-wrap { text-align:center; padding:1.25rem; }
+  .ring-stats { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; padding:0 1.25rem 1.25rem; }
+  .ring-stat  { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:0.75rem; text-align:center; }
+  .ring-stat-num   { font-size:1.3rem; font-weight:700; }
+  .ring-stat-label { font-size:0.72rem; color:var(--muted); margin-top:2px; }
+
+  /* ── AI INSIGHT ──────────────────────────────────────────────── */
+  .ai-insight {
+    background:rgba(79,142,247,0.06); border:1px solid rgba(79,142,247,0.2);
+    border-radius:10px; padding:0.875rem; font-size:0.8rem;
+    color:var(--muted); line-height:1.65; margin:0 1.25rem 1.25rem;
+  }
+  .ai-insight strong { color:var(--text); }
+
+  /* ── LOADING SKELETON ────────────────────────────────────────── */
+  .loading-shimmer {
+    background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);
+    background-size:200% 100%; animation:shimmer 1.5s infinite;
+    border-radius:8px; height:320px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Role Selector -->
+<div class="card mb-3" style="padding:1.25rem">
+  <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.75rem;color:var(--muted)">🎯 Select Learning Path</div>
+  <div class="role-chips" id="role-chips">
+    <div class="role-chip active" data-role="data-scientist"    style="background:#4f8ef7">📊 Data Scientist</div>
+    <div class="role-chip"       data-role="data-analyst"       >📈 Data Analyst</div>
+    <div class="role-chip"       data-role="machine-learning"   >🧠 ML Engineer</div>
+    <div class="role-chip"       data-role="ai-engineer"        >🤖 AI Engineer</div>
+    <div class="role-chip"       data-role="software-developer" >💻 Software Dev</div>
+    <div class="role-chip"       data-role="cs-fundamentals"    >🔬 CS Fundamentals</div>
+    <div class="role-chip"       data-role="devops-engineer"    >⚙️ DevOps Engineer</div>
+  </div>
+</div>
+
+<div class="rm-layout">
+  <!-- LEFT: Flowchart -->
+  <div>
+    <div class="flowchart-wrap">
+      <div class="flowchart-header">
+        <div>
+          <span id="fc-title" style="font-weight:700;font-size:1rem">📊 Data Scientist Roadmap</span>
+          <div id="fc-desc" style="font-size:0.78rem;color:var(--muted);margin-top:2px">
+            Master the full data science pipeline: statistics, Python, ML, and deployment.
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn btn-ghost btn-sm" onclick="zoomIn()">＋</button>
+          <button class="btn btn-ghost btn-sm" onclick="zoomOut()">－</button>
+          <button class="btn btn-ghost btn-sm" onclick="zoomReset()">⊡</button>
+        </div>
+      </div>
+      <div class="flowchart-inner" id="flowchart-inner">
+        <div class="loading-shimmer"></div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Completed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div> In Progress</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Not Started</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2a3a52"></div> Locked</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Detail + Stats -->
+  <div>
+    <!-- Module Detail Panel -->
+    <div class="detail-panel hidden mb-3" id="detail-panel">
+      <div class="dp-header">
+        <div class="dp-tier-badge" id="dp-tier-badge">BEGINNER</div>
+        <div class="dp-title" id="dp-title">Select a module</div>
+        <div class="dp-desc"  id="dp-desc">Click any node in the roadmap to see module details.</div>
+      </div>
+      <div class="dp-body">
+        <div class="dp-row"><span class="dp-row-label">Status</span>   <span class="dp-status-badge" id="dp-status">—</span></div>
+        <div class="dp-row"><span class="dp-row-label">Hours</span>    <span id="dp-hours" style="font-weight:600">—</span></div>
+        <div class="dp-row"><span class="dp-row-label">Track</span>    <span id="dp-track" style="font-weight:600;color:var(--muted)">—</span></div>
+      </div>
+      <div class="dp-actions" id="dp-actions"></div>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="detail-panel mb-3" id="progress-card">
+      <div class="progress-ring-wrap">
+        <svg width="110" height="110" viewBox="0 0 110 110" id="prog-svg">
+          <circle cx="55" cy="55" r="46" fill="none" stroke="var(--surface2)" stroke-width="9"/>
+          <circle cx="55" cy="55" r="46" fill="none" stroke="url(#pgr)" stroke-width="9"
+            stroke-dasharray="289" id="prog-arc"
+            stroke-dashoffset="289" stroke-linecap="round" transform="rotate(-90 55 55)"/>
+          <defs>
+            <linearGradient id="pgr" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#4f8ef7" id="pg-stop1"/>
+              <stop offset="100%" stop-color="#7c5cd8" id="pg-stop2"/>
+            </linearGradient>
+          </defs>
+          <text x="55" y="51" text-anchor="middle" font-family="Inter,sans-serif" font-size="18" font-weight="700" fill="#e8edf5" id="prog-pct">0%</text>
+          <text x="55" y="65" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#8b9dc0">Complete</text>
+        </svg>
+      </div>
+      <div class="ring-stats" id="ring-stats">
+        <div class="ring-stat"><div class="ring-stat-num text-green" id="rs-done">0</div><div class="ring-stat-label">Completed</div></div>
+        <div class="ring-stat"><div class="ring-stat-num text-accent" id="rs-active">0</div><div class="ring-stat-label">In Progress</div></div>
+        <div class="ring-stat"><div class="ring-stat-num text-yellow" id="rs-todo">0</div><div class="ring-stat-label">Not Started</div></div>
+        <div class="ring-stat"><div class="ring-stat-num text-muted" id="rs-locked">0</div><div class="ring-stat-label">Locked</div></div>
+      </div>
+      <div class="ai-insight" id="ai-insight">
+        <strong>🤖 IBM Granite Insight:</strong> Loading personalized recommendation…
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════════
+let currentRole = 'data-scientist';
+let currentData = null;
+let selectedNode = null;
+let svgScale = 1;
+
+const ROLE_COLORS = {
+  'data-scientist':    '#4f8ef7',
+  'data-analyst':      '#00c9a7',
+  'machine-learning':  '#a855f7',
+  'ai-engineer':       '#f59e0b',
+  'software-developer':'#7c5cd8',
+  'cs-fundamentals':   '#ef4444',
+  'devops-engineer':   '#06b6d4',
+};
+
+const TIER_COLORS = {
+  beginner:     { bg:'rgba(0,201,167,0.12)',  border:'rgba(0,201,167,0.35)',  node:'#1a3a30', text:'#00c9a7', badge:'#00c9a7' },
+  intermediate: { bg:'rgba(79,142,247,0.10)', border:'rgba(79,142,247,0.3)',  node:'#1a2e4a', text:'#4f8ef7', badge:'#4f8ef7' },
+  advanced:     { bg:'rgba(124,92,216,0.10)', border:'rgba(124,92,216,0.3)',  node:'#2a1e40', text:'#a855f7', badge:'#a855f7' },
+};
+
+const STATUS_META = {
+  done:   { fill:'#22c55e', icon:'✓', label:'Completed',   badge:'status-done'   },
+  active: { fill:'#4f8ef7', icon:'●', label:'In Progress', badge:'status-active' },
+  todo:   { fill:'#f59e0b', icon:'○', label:'Not Started', badge:'status-todo'   },
+  locked: { fill:'#2a3a52', icon:'🔒',label:'Locked',       badge:'status-locked' },
+};
+
+const AI_INSIGHTS = {
+  'data-scientist':    'Focus on <strong>Machine Learning with scikit-learn</strong> next — it unlocks the Advanced tier and is the #1 DS interview skill.',
+  'data-analyst':      'Complete <strong>Power BI Desktop</strong> first — it directly translates to a 30–40% salary bump for analyst roles.',
+  'machine-learning':  'Deep Learning (PyTorch) is your gateway to MLOps. IBM Granite is built on transformer architecture you will learn here.',
+  'ai-engineer':       'IBM Granite fine-tuning + RAG pipelines are the most in-demand AI engineering skills in 2025 enterprise hiring.',
+  'software-developer':'System Design is the final boss of SWE interviews. Build one end-to-end project using Flask + Postgres first.',
+  'cs-fundamentals':   'Master DSA before anything else — it is the gatekeeper for every software & data role interview worldwide.',
+  'devops-engineer':   'Docker → Kubernetes → CI/CD is the golden path. Once Kubernetes is done, the rest of DevOps opens up rapidly.',
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  ROLE SWITCHING
+// ══════════════════════════════════════════════════════════════════
+document.querySelectorAll('.role-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const role = chip.dataset.role;
+    if (role === currentRole) return;
+    document.querySelectorAll('.role-chip').forEach(c => {
+      c.classList.remove('active');
+      c.style.background = '';
+      c.style.color = '';
+    });
+    chip.classList.add('active');
+    chip.style.background = ROLE_COLORS[role] || '#4f8ef7';
+    chip.style.color = '#fff';
+    currentRole = role;
+    selectedNode = null;
+    document.getElementById('detail-panel').classList.add('hidden');
+    loadRoadmap(role);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  FETCH ROADMAP FROM BACKEND
+// ══════════════════════════════════════════════════════════════════
+function loadRoadmap(role) {
+  const inner = document.getElementById('flowchart-inner');
+  inner.innerHTML = '<div class="loading-shimmer"></div>';
+
+  fetch(`/api/roadmap/${role}`)
+    .then(r => r.json())
+    .then(data => {
+      currentData = data;
+      document.getElementById('fc-title').textContent = `${data.emoji} ${data.label} Roadmap`;
+      document.getElementById('fc-desc').textContent  = data.description;
+      updateProgressRing(data);
+      updateAiInsight(role);
+      renderSVG(data, role);
+    })
+    .catch(() => {
+      inner.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--danger)">Failed to load roadmap. Please refresh.</div>';
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SVG FLOWCHART RENDERER
+// ══════════════════════════════════════════════════════════════════
+function renderSVG(data, role) {
+  const color = ROLE_COLORS[role] || '#4f8ef7';
+  const tiers = [
+    { key: 'beginner',     label: '🌱 BEGINNER',     modules: data.beginner },
+    { key: 'intermediate', label: '⚡ INTERMEDIATE',  modules: data.intermediate },
+    { key: 'advanced',     label: '🚀 ADVANCED',      modules: data.advanced },
+  ];
+
+  // Layout constants
+  const NODE_W = 200, NODE_H = 52, TIER_LABEL_H = 36;
+  const COL_GAP = 28, ROW_GAP = 16, TIER_GAP = 32;
+  const COLS = 2;  // nodes per row within a tier
+  const PAD = 24;
+
+  // Compute SVG positions
+  let allNodes = [];   // { id, tier, col, row, x, y, module }
+  let tY = PAD;
+
+  tiers.forEach((tier, ti) => {
+    const tc = TIER_COLORS[tier.key];
+    const rows = Math.ceil(tier.modules.length / COLS);
+    const tierH = TIER_LABEL_H + rows * (NODE_H + ROW_GAP) - ROW_GAP + ROW_GAP;
+
+    tier.modules.forEach((mod, idx) => {
+      const col = idx % COLS;
+      const row = Math.floor(idx / COLS);
+      const x = PAD + col * (NODE_W + COL_GAP);
+      const y = tY + TIER_LABEL_H + row * (NODE_H + ROW_GAP);
+      allNodes.push({ id: mod.id, tier: tier.key, tiIdx: ti, col, row, x, y, mod, tierColor: tc });
+    });
+
+    tY += TIER_LABEL_H + rows * (NODE_H + ROW_GAP) + TIER_GAP;
+  });
+
+  const svgW = PAD * 2 + COLS * NODE_W + (COLS - 1) * COL_GAP;
+  const svgH = tY + PAD;
+
+  // Build SVG
+  let svg = `<svg id="roadmap-svg" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="transform-origin:top left;transform:scale(${svgScale})">`;
+  svg += `<defs>
+    <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>`;
+
+  // Tier background bands
+  let tY2 = PAD;
+  tiers.forEach(tier => {
+    const tc = TIER_COLORS[tier.key];
+    const rows = Math.ceil(tier.modules.length / COLS);
+    const tierH = TIER_LABEL_H + rows * (NODE_H + ROW_GAP) + 8;
+    svg += `<rect x="${PAD/2}" y="${tY2 - 8}" width="${svgW - PAD}" height="${tierH}"
+      rx="12" fill="${tc.bg}" stroke="${tc.border}" stroke-width="1" opacity="0.8"/>`;
+    svg += `<text x="${svgW/2}" y="${tY2 + 18}" text-anchor="middle"
+      class="tier-label" fill="${tc.text}" font-size="12" font-weight="700">${tier.label}</text>`;
+    tY2 += TIER_LABEL_H + rows * (NODE_H + ROW_GAP) + TIER_GAP;
+  });
+
+  // Connectors: vertical lines between tiers (last row of tier N → first row of tier N+1)
+  for (let ti = 0; ti < tiers.length - 1; ti++) {
+    const fromNodes = allNodes.filter(n => n.tiIdx === ti);
+    const toNodes   = allNodes.filter(n => n.tiIdx === ti + 1);
+    if (!fromNodes.length || !toNodes.length) continue;
+
+    // last row of current tier → first item of next tier
+    const lastRow = Math.max(...fromNodes.map(n => n.row));
+    const lastTierNodes = fromNodes.filter(n => n.row === lastRow);
+    const firstNext = toNodes[0];
+
+    lastTierNodes.forEach(fn => {
+      const x1 = fn.x + NODE_W / 2;
+      const y1 = fn.y + NODE_H;
+      const x2 = firstNext.x + NODE_W / 2;
+      const y2 = firstNext.y;
+      svg += `<path d="M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}"
+        fill="none" stroke="${TIER_COLORS[tiers[ti+1].key].text}" stroke-width="1.5"
+        class="connector" marker-end="url(#arr${ti})"/>`;
+    });
+
+    // Arrow marker
+    svg += `<defs><marker id="arr${ti}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="${TIER_COLORS[tiers[ti+1].key].text}" opacity="0.5"/>
+    </marker></defs>`;
+  }
+
+  // Row connectors within a tier
+  tiers.forEach(tier => {
+    const tc = TIER_COLORS[tier.key];
+    const tnodes = allNodes.filter(n => n.tier === tier.key);
+    for (let i = 0; i < tnodes.length - 1; i++) {
+      const a = tnodes[i], b = tnodes[i + 1];
+      if (a.row === b.row) {
+        // same row: horizontal connector
+        svg += `<line x1="${a.x + NODE_W}" y1="${a.y + NODE_H/2}"
+          x2="${b.x}" y2="${b.y + NODE_H/2}"
+          stroke="${tc.text}" stroke-width="1.2" class="connector"/>`;
+      } else {
+        // different rows: vertical connector from right-most of previous row
+        const prevRowNodes = tnodes.filter(n => n.row === a.row);
+        const nextRowFirst = tnodes.find(n => n.row === b.row);
+        if (!nextRowFirst) return;
+        // draw only once per row transition
+        if (tnodes[i + 1] === nextRowFirst) {
+          svg += `<line x1="${a.x + NODE_W/2}" y1="${a.y + NODE_H}"
+            x2="${nextRowFirst.x + NODE_W/2}" y2="${nextRowFirst.y}"
+            stroke="${tc.text}" stroke-width="1.2" class="connector"/>`;
+        }
+      }
+    }
+  });
+
+  // Nodes
+  allNodes.forEach(n => {
+    const sm = STATUS_META[n.mod.status] || STATUS_META.locked;
+    const isLocked = n.mod.status === 'locked';
+    const fill = isLocked ? '#111c2e' : n.tierColor.node;
+    const borderCol = isLocked ? '#1e2d45' : sm.fill;
+    const textOpacity = isLocked ? '0.45' : '1';
+    const statusDotColor = sm.fill;
+
+    // Truncate title to fit
+    const maxChars = 26;
+    const displayTitle = n.mod.title.length > maxChars
+      ? n.mod.title.substring(0, maxChars) + '…'
+      : n.mod.title;
+    const hoursText = `${n.mod.hours}h  ·  ${sm.label}`;
+
+    svg += `
+      <g class="rm-node" id="node-${n.id}" onclick="selectNode('${n.id}')" role="button" tabindex="0">
+        <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}"
+          rx="10" fill="${fill}" stroke="${borderCol}" stroke-width="1.5"
+          style="filter:${n.mod.status === 'active' ? 'url(#glow)' : 'none'}"/>
+        <!-- status dot -->
+        <circle cx="${n.x + 14}" cy="${n.y + NODE_H/2}" r="5" fill="${statusDotColor}" opacity="${textOpacity}"/>
+        <!-- title -->
+        <text x="${n.x + 26}" y="${n.y + 20}" class="node-title" opacity="${textOpacity}">${displayTitle}</text>
+        <!-- meta -->
+        <text x="${n.x + 26}" y="${n.y + 36}" class="node-meta">${hoursText}</text>
+      </g>`;
+  });
+
+  svg += '</svg>';
+
+  const inner = document.getElementById('flowchart-inner');
+  inner.innerHTML = svg;
+
+  // Re-attach click for keyboard nav
+  inner.querySelectorAll('.rm-node').forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') el.click();
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  NODE SELECTION
+// ══════════════════════════════════════════════════════════════════
+function selectNode(id) {
+  if (!currentData) return;
+  const allMods = [
+    ...currentData.beginner.map(m => ({...m, tier:'beginner'})),
+    ...currentData.intermediate.map(m => ({...m, tier:'intermediate'})),
+    ...currentData.advanced.map(m => ({...m, tier:'advanced'})),
+  ];
+  const mod = allMods.find(m => m.id === id);
+  if (!mod) return;
+
+  // Deselect old
+  if (selectedNode) {
+    const prev = document.getElementById('node-' + selectedNode);
+    if (prev) prev.classList.remove('selected');
+  }
+  selectedNode = id;
+  const el = document.getElementById('node-' + id);
+  if (el) el.classList.add('selected');
+
+  // Update detail panel
+  const tc = TIER_COLORS[mod.tier];
+  const sm = STATUS_META[mod.status] || STATUS_META.locked;
+  const panel = document.getElementById('detail-panel');
+  panel.classList.remove('hidden');
+
+  const tierBadge = document.getElementById('dp-tier-badge');
+  tierBadge.textContent = mod.tier.toUpperCase();
+  tierBadge.style.background = tc.bg;
+  tierBadge.style.color = tc.text;
+  tierBadge.style.border = `1px solid ${tc.border}`;
+
+  document.getElementById('dp-title').textContent = mod.title;
+  document.getElementById('dp-desc').textContent  = mod.desc;
+
+  const statusEl = document.getElementById('dp-status');
+  statusEl.textContent = sm.label;
+  statusEl.className = 'dp-status-badge ' + sm.badge;
+
+  document.getElementById('dp-hours').textContent = mod.hours + ' hours estimated';
+  document.getElementById('dp-track').textContent = currentData.label;
+
+  // Action buttons
+  const actions = document.getElementById('dp-actions');
+  const ytQuery = encodeURIComponent(mod.title + ' tutorial');
+  let btns = `<a href="https://www.youtube.com/results?search_query=${ytQuery}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="color:#ff4444;border-color:rgba(255,68,68,0.3)">▶ YouTube</a>`;
+
+  if (mod.status === 'done') {
+    btns += `<button class="btn btn-ghost btn-sm" style="color:var(--accent3)">✓ Completed</button>`;
+  } else if (mod.status === 'active') {
+    btns += `<a href="/recommendations" class="btn btn-primary btn-sm">Resume →</a>`;
+  } else if (mod.status === 'todo') {
+    btns += `<a href="/recommendations" class="btn btn-outline btn-sm">Start Module</a>`;
+  } else {
+    btns += `<button class="btn btn-ghost btn-sm" disabled style="opacity:0.4">🔒 Locked</button>`;
+  }
+  btns += `<a href="/chat" class="btn btn-ghost btn-sm">Ask AI Coach</a>`;
+  actions.innerHTML = btns;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  PROGRESS RING UPDATE
+// ══════════════════════════════════════════════════════════════════
+function updateProgressRing(data) {
+  const all = [...data.beginner, ...data.intermediate, ...data.advanced];
+  const done   = all.filter(m => m.status === 'done').length;
+  const active = all.filter(m => m.status === 'active').length;
+  const todo   = all.filter(m => m.status === 'todo').length;
+  const locked = all.filter(m => m.status === 'locked').length;
+  const total  = all.length;
+  const pct    = total ? Math.round((done / total) * 100) : 0;
+
+  // Ring arc: circumference = 2πr = 289 for r=46
+  const circ = 289;
+  const offset = circ - (circ * pct / 100);
+  document.getElementById('prog-arc').setAttribute('stroke-dashoffset', offset);
+  document.getElementById('prog-pct').textContent = pct + '%';
+  document.getElementById('rs-done').textContent   = done;
+  document.getElementById('rs-active').textContent = active;
+  document.getElementById('rs-todo').textContent   = todo;
+  document.getElementById('rs-locked').textContent = locked;
+
+  // Animate
+  document.getElementById('prog-arc').style.transition = 'stroke-dashoffset 0.8s ease';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  AI INSIGHT
+// ══════════════════════════════════════════════════════════════════
+function updateAiInsight(role) {
+  const msg = AI_INSIGHTS[role] || 'Keep progressing through the modules — consistency is key!';
+  document.getElementById('ai-insight').innerHTML =
+    `<strong>🤖 IBM Granite Insight:</strong> ${msg}`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ZOOM CONTROLS
+// ══════════════════════════════════════════════════════════════════
+function zoomIn()    { svgScale = Math.min(svgScale + 0.15, 2.0); applyZoom(); }
+function zoomOut()   { svgScale = Math.max(svgScale - 0.15, 0.4); applyZoom(); }
+function zoomReset() { svgScale = 1; applyZoom(); }
+function applyZoom() {
+  const svg = document.getElementById('roadmap-svg');
+  if (svg) svg.style.transform = `scale(${svgScale})`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  INITIAL LOAD
+// ══════════════════════════════════════════════════════════════════
+loadRoadmap('data-scientist');
+</script>
+{% endblock %}

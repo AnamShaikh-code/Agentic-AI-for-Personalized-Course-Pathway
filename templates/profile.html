@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Student Profile{% endblock %}
+{% block topbar_title %}Student Profile{% endblock %}
+{% block topbar_sub %}Manage your learning profile and interests.{% endblock %}
+
+{% block content %}
+<div class="grid-2" style="align-items:start">
+  <!-- Left: Avatar + Badges -->
+  <div>
+    <div class="card mb-3" style="text-align:center;padding:2rem">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;margin:0 auto 1rem">
+        {{ profile.name[:2].upper() }}
+      </div>
+      <div style="font-size:1.15rem;font-weight:700">{{ profile.name }}</div>
+      <div class="text-muted text-sm" style="margin-top:4px">{{ profile.email }}</div>
+      <div style="display:flex;justify-content:center;gap:0.5rem;margin:1rem 0;flex-wrap:wrap">
+        <span class="badge badge-blue">{{ profile.track }}</span>
+        <span class="badge badge-purple">{{ profile.level }}</span>
+      </div>
+      <div style="font-size:0.8rem;color:var(--muted)">Member since Jan 2025 · {{ profile.streak }}-day streak 🔥</div>
+    </div>
+
+    <!-- Badges -->
+    <div class="card">
+      <div class="sec-title mb-3">🏆 Earned Badges</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.75rem">
+        {% for badge in profile.badges %}
+        <div style="text-align:center;padding:0.75rem;background:var(--surface2);border:1px solid var(--border);border-radius:12px;min-width:70px">
+          <div style="font-size:1.5rem">{{ badge.split()[-1] }}</div>
+          <div class="text-xs fw-600" style="margin-top:4px">{{ badge.rsplit(' ',1)[0] }}</div>
+        </div>
+        {% endfor %}
+        <div style="text-align:center;padding:0.75rem;background:rgba(79,142,247,0.05);border:1px solid rgba(79,142,247,0.15);border-radius:12px;min-width:70px;opacity:0.5">
+          <div style="font-size:1.5rem">🔒</div>
+          <div class="text-xs fw-600 text-muted" style="margin-top:4px">10 Courses</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Edit Form -->
+  <div class="card">
+    <div class="sec-title mb-3">Edit Profile</div>
+    <form method="POST" action="/profile">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" name="name" value="{{ profile.name }}" required />
+      </div>
+      <div class="grid-2" style="gap:0.75rem">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" name="email" value="{{ profile.email }}" type="email" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Country</label>
+          <select class="form-select" name="country">
+            {% for c in ['United States','India','United Kingdom','Canada','Australia','Other'] %}
+            <option {% if profile.country == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Educational Background</label>
+        <select class="form-select" name="education">
+          {% for e in ["Bachelor's in Computer Science","Self-taught","Bootcamp Graduate","Master's Degree","High School / Secondary"] %}
+          <option {% if profile.education == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Career Goal</label>
+        <input class="form-input" name="goal" value="{{ profile.goal }}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Primary Learning Track</label>
+        <select class="form-select" name="track">
+          {% for t in ['Data Science','Machine Learning','Computer Science','AI & NLP','Deep Learning','Cloud Computing','Cybersecurity','Backend Development','Mobile Development'] %}
+          <option {% if profile.track == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Interests <span class="text-xs text-muted">(click to toggle)</span></label>
+        <div class="chip-group">
+          {% set all_interests = ['Data Science','Machine Learning','Python','SQL','Statistics','Deep Learning','Computer Science','AI & NLP','Data Visualization','Cloud Computing','IBM watsonx.ai','Algorithms'] %}
+          {% for interest in all_interests %}
+          <label style="cursor:pointer">
+            <input type="checkbox" name="interests" value="{{ interest }}"
+              {% if interest in profile.interests %}checked{% endif %}
+              style="display:none" class="interest-cb" onchange="this.closest('label').querySelector('.chip-select').classList.toggle('on',this.checked)">
+            <div class="chip-select {% if interest in profile.interests %}on{% endif %}">{{ interest }}</div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="display:flex;gap:0.75rem;margin-top:0.5rem">
+        <button type="submit" class="btn btn-primary">Save Profile</button>
+        <a href="/dashboard" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// clicking a chip also toggles the hidden checkbox
+document.querySelectorAll('.chip-select').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const cb = chip.closest('label').querySelector('input[type=checkbox]');
+    cb.checked = !cb.checked;
+    chip.classList.toggle('on', cb.checked);
+  });
+});
+</script>
+{% endblock %}

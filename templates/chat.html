@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}AI Coach Chat{% endblock %}
+{% block topbar_title %}AI Coach Chat{% endblock %}
+{% block topbar_sub %}Ask IBM Granite anything about your learning journey.{% endblock %}
+
+{% block content %}
+<div class="chat-layout">
+  <!-- Chat Window -->
+  <div class="chat-window">
+    <div class="chat-header">
+      <div class="chat-avatar">🤖</div>
+      <div>
+        <div class="chat-name">LearnMate AI Coach</div>
+        <div class="chat-status">● Online · Powered by IBM Granite{% if ibm_configured %} (Live){% else %} (Demo mode){% endif %}</div>
+      </div>
+      <div style="margin-left:auto">
+        <button class="btn btn-ghost btn-sm" onclick="clearChat()">🗑️ Clear</button>
+      </div>
+    </div>
+
+    <div class="chat-msgs" id="chat-msgs"></div>
+
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chat-input" rows="1"
+        placeholder="Ask your AI coach anything..."
+        onkeydown="handleKey(event)"></textarea>
+      <button class="send-btn" onclick="send()">➤</button>
+    </div>
+  </div>
+
+  <!-- Chat Sidebar -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.25rem;overflow-y:auto;display:flex;flex-direction:column;gap:1.25rem">
+    <div>
+      <div class="sec-title mb-2">💡 Suggested Questions</div>
+      <div style="display:flex;flex-direction:column;gap:0.4rem" id="suggestions"></div>
+    </div>
+    <div class="divider" style="margin:0"></div>
+    <div>
+      <div class="sec-title mb-2">🔧 IBM Granite Model</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem">
+        <div class="text-sm fw-600 mb-2">ibm/granite-3-3-8b-instruct</div>
+        <div class="text-xs text-muted" style="line-height:1.6">Student profile + assessment injected as context for personalized responses.</div>
+        <div style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.35rem">
+          <div class="flex justify-between text-xs"><span class="text-muted">Status</span>
+            <span {% if ibm_configured %}class="text-green"{% else %}class="text-yellow"{% endif %}>
+              {% if ibm_configured %}● Live{% else %}○ Demo{% endif %}
+            </span>
+          </div>
+          <div class="flex justify-between text-xs"><span class="text-muted">Backend</span><span>Python Flask</span></div>
+        </div>
+      </div>
+      {% if not ibm_configured %}
+      <a href="/config" class="btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-top:0.75rem">Configure IBM API →</a>
+      {% endif %}
+    </div>
+    <div>
+      <div class="sec-title mb-2">📌 Your Context</div>
+      <div style="font-size:0.78rem;display:flex;flex-direction:column;gap:0.4rem">
+        <div class="flex gap-sm"><span class="text-muted">Track:</span><span>{{ profile.track }}</span></div>
+        <div class="flex gap-sm"><span class="text-muted">Level:</span><span>{{ profile.level }}</span></div>
+        <div class="flex gap-sm"><span class="text-muted">Goal:</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px" title="{{ profile.goal }}">{{ profile.goal }}</span></div>
+        <div class="flex gap-sm"><span class="text-muted">Progress:</span><span class="text-accent">{{ profile.progress }}%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const suggestions = [
+  "Types of ML and their algorithms",
+  "Explain LLMs and IBM Granite",
+  "What is NLP? Explain tokenization to BERT",
+  "SQL window functions with examples",
+  "Power BI DAX formulas explained",
+  "Excel VLOOKUP vs XLOOKUP",
+  "R programming vs Python for data science",
+  "Statistics: hypothesis testing and p-value",
+  "Data Science interview questions",
+  "Explain in Marathi - ML basics",
+];
+
+const welcome = `Hi {{ profile.name.split()[0] }}! 👋 I'm your LearnMate AI Coach, powered by IBM Granite.\n\nI've reviewed your profile — you're making great progress on **{{ profile.track }}** at the **{{ profile.level }}** level ({{ profile.progress }}% complete).\n\nHow can I help you today? Ask me about next steps, specific technologies, career advice, or anything learning-related!`;
+
+function fmt(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/```[\w]*\n?([\s\S]*?)```/g, '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.75rem;margin:0.5rem 0;font-family:monospace;font-size:0.78rem;white-space:pre-wrap;overflow-x:auto;color:var(--accent3)">$1</div>')
+    .replace(/\n/g, '<br>');
+}
+
+function time() { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+
+function addMsg(role, text) {
+  const el = document.getElementById('chat-msgs');
+  const isAI = role === 'ai';
+  const d = document.createElement('div');
+  d.className = `msg ${isAI ? 'ai' : 'user'}`;
+  d.innerHTML = `
+    <div class="msg-av ${isAI ? 'msg-ai-av' : 'msg-user-av'}">${isAI ? '🤖' : '👤'}</div>
+    <div>
+      <div class="msg-bubble">${fmt(text)}</div>
+      <div class="msg-time">${isAI ? 'IBM Granite · ' : ''}${time()}</div>
+    </div>`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function addTyping() {
+  const el = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.id = 'typing'; d.className = 'msg ai';
+  d.innerHTML = `<div class="msg-av msg-ai-av">🤖</div><div class="msg-bubble"><div class="typing-wrap"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+
+async function send() {
+  const inp = document.getElementById('chat-input');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  addMsg('user', txt);
+  addTyping();
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: txt })
+    });
+    const data = await res.json();
+    document.getElementById('typing')?.remove();
+    addMsg('ai', data.response || data.error || 'Sorry, I could not respond right now.');
+  } catch(e) {
+    document.getElementById('typing')?.remove();
+    addMsg('ai', 'Connection error. Please check the server is running.');
+  }
+}
+
+function clearChat() {
+  document.getElementById('chat-msgs').innerHTML = '';
+  addMsg('ai', welcome);
+  showToast('Chat cleared');
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+
+// Render suggestions
+document.getElementById('suggestions').innerHTML = suggestions.map(s =>
+  `<div style="padding:0.5rem 0.75rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.78rem;transition:all 0.2s"
+    onmouseover="this.style.borderColor='var(--accent)'"
+    onmouseout="this.style.borderColor='var(--border)'"
+    onclick="document.getElementById('chat-input').value='${s.replace(/'/g,"\\'")}';send()">💬 ${s}</div>`
+).join('');
+
+// Init
+addMsg('ai', welcome);
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: learnmate
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: IBM_API_KEY
+        sync: false
+      - key: IBM_PROJECT_ID
+        sync: false
+      - key: IBM_URL
+        value: https://us-south.ml.cloud.ibm.com
+      - key: IBM_MODEL
+        value: ibm/granite-3-3-8b-instruct

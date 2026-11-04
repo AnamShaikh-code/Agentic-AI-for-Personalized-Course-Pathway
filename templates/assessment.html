@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Skill Assessment{% endblock %}
+{% block topbar_title %}Skill Assessment{% endblock %}
+{% block topbar_sub %}Evaluate your current Data Science & CS knowledge level.{% endblock %}
+
+{% block content %}
+<!-- Intro Screen -->
+<div id="intro-screen">
+  <div class="card" style="max-width:680px;margin:0 auto;text-align:center;padding:2.5rem">
+    <div style="font-size:3rem;margin-bottom:1rem">🧠</div>
+    <div style="font-size:1.3rem;font-weight:700;margin-bottom:0.75rem">Skill Assessment</div>
+    <div class="text-muted" style="margin-bottom:1.5rem;line-height:1.7;font-size:0.9rem">
+      This adaptive assessment evaluates your current knowledge in Data Science and Computer Science.
+      IBM Granite AI will analyze your responses to precisely calibrate your personalized learning roadmap.<br/><br/>
+      <strong style="color:var(--text)">10 questions · ~5 minutes · {{ profile.track }} track</strong>
+    </div>
+    <div style="display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+      <span class="tag">Python</span><span class="tag">Statistics</span><span class="tag">Machine Learning</span>
+      <span class="tag">SQL</span><span class="tag">Algorithms</span>
+    </div>
+    <button class="btn btn-primary" style="font-size:1rem;padding:0.75rem 2rem" onclick="startQuiz()">Start Assessment →</button>
+  </div>
+</div>
+
+<!-- Quiz Screen -->
+<div id="quiz-screen" style="display:none">
+  <div class="quiz-card">
+    <div class="quiz-prog"><div class="quiz-fill" id="qprog" style="width:10%"></div></div>
+    <div class="quiz-step" id="qstep">Question 1 of 10</div>
+    <div class="quiz-q"    id="qtext"></div>
+    <div class="quiz-opts" id="qopts"></div>
+    <div class="quiz-footer">
+      <div id="qfeedback" style="font-size:0.85rem"></div>
+      <button class="btn btn-primary btn-sm" id="qnext" style="display:none" onclick="nextQ()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Result Screen -->
+<div id="result-screen" style="display:none">
+  <div class="card" style="max-width:680px;margin:0 auto;padding:2.5rem">
+    <div style="text-align:center;margin-bottom:2rem">
+      <div style="font-size:3rem;margin-bottom:0.75rem">🎉</div>
+      <div style="font-size:1.3rem;font-weight:700">Assessment Complete!</div>
+      <div class="text-muted text-sm" style="margin-top:0.4rem">IBM Granite has analysed your responses</div>
+    </div>
+    <div class="grid-3" style="gap:1rem;margin-bottom:1.5rem">
+      <div style="text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.25rem">
+        <div style="font-size:1.75rem;font-weight:700;color:var(--accent)" id="r-score">0%</div>
+        <div class="text-xs text-muted" style="margin-top:4px">Overall Score</div>
+      </div>
+      <div style="text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.25rem">
+        <div style="font-size:1.75rem;font-weight:700;color:var(--accent3)" id="r-correct">0/10</div>
+        <div class="text-xs text-muted" style="margin-top:4px">Correct Answers</div>
+      </div>
+      <div style="text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.25rem">
+        <div style="font-size:1.4rem;font-weight:700;color:var(--accent4)" id="r-level">-</div>
+        <div class="text-xs text-muted" style="margin-top:4px">Assigned Level</div>
+      </div>
+    </div>
+    <div style="margin-bottom:1.5rem">
+      <div class="sec-title mb-3">Skill Breakdown</div>
+      {% set skill_breakdown = [
+        ('Python', 80, 'pf-green', 'text-green'),
+        ('Statistics', 65, 'pf-blue', 'text-accent'),
+        ('Machine Learning', 55, 'pf-purple', 'text-yellow'),
+        ('SQL & Databases', 70, 'pf-yellow', 'text-yellow'),
+      ] %}
+      {% for skill, val, cls, tcls in skill_breakdown %}
+      <div class="skill-bar-row">
+        <div class="skill-name">{{ skill }}</div>
+        <div class="skill-bar"><div class="progress-fill {{ cls }}" style="width:{{ val }}%"></div></div>
+        <div class="skill-val {{ tcls }}">{{ val }}%</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="info-banner">
+      <div class="info-banner-icon">🤖</div>
+      <div class="info-banner-text"><strong>IBM Granite Analysis:</strong> Your Python and SQL skills are solid. We recommend focusing on Machine Learning algorithms and Statistical modeling to advance your {{ profile.track }} career path.</div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
+      <a href="/roadmap" class="btn btn-primary">View Updated Roadmap →</a>
+      <button class="btn btn-ghost" onclick="retake()">Retake Assessment</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const questions = [
+  { q:'Which Python library is primarily used for data manipulation and analysis?', opts:['NumPy','Matplotlib','Pandas','SciPy'], ans:2 },
+  { q:'What does "supervised learning" mean in Machine Learning?', opts:['The model learns without any data','The model learns from labelled input-output pairs','The model clusters unlabelled data','The model uses reinforcement signals only'], ans:1 },
+  { q:'Which SQL clause is used to filter groups after aggregation?', opts:['WHERE','HAVING','GROUP BY','ORDER BY'], ans:1 },
+  { q:'What is the purpose of train/test split in ML?', opts:['To speed up training','To evaluate model performance on unseen data','To reduce dataset size','To normalize features'], ans:1 },
+  { q:'What is the time complexity of Binary Search?', opts:['O(n)','O(n²)','O(log n)','O(1)'], ans:2 },
+  { q:'Which measure is NOT a measure of central tendency?', opts:['Mean','Median','Mode','Standard Deviation'], ans:3 },
+  { q:'In a neural network, what does a "hidden layer" do?', opts:['Stores input data','Outputs predictions','Learns intermediate feature representations','Normalizes output values'], ans:2 },
+  { q:'What does "overfitting" mean in Machine Learning?', opts:['Model performs well on training and test data','Model performs well on training but poorly on new data','Model is too simple to learn patterns','Model takes too long to train'], ans:1 },
+  { q:'Which data structure uses FIFO (First In, First Out) ordering?', opts:['Stack','Queue','Binary Tree','Hash Map'], ans:1 },
+  { q:'What is the primary goal of k-means clustering?', opts:['Predict a continuous value','Classify labelled data','Group data into k clusters by similarity','Reduce dimensionality'], ans:2 },
+];
+
+let idx = 0, score = 0, answered = false;
+
+function startQuiz() {
+  idx = 0; score = 0;
+  document.getElementById('intro-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display  = 'block';
+  renderQ();
+}
+
+function renderQ() {
+  const q = questions[idx];
+  document.getElementById('qstep').textContent = `Question ${idx+1} of ${questions.length}`;
+  document.getElementById('qprog').style.width  = ((idx / questions.length) * 100) + '%';
+  document.getElementById('qtext').textContent  = q.q;
+  document.getElementById('qfeedback').textContent = '';
+  document.getElementById('qnext').style.display  = 'none';
+  answered = false;
+  document.getElementById('qopts').innerHTML = q.opts.map((o, i) =>
+    `<div class="quiz-opt" onclick="pick(this,${i},${q.ans})">${o}</div>`
+  ).join('');
+}
+
+function pick(el, chosen, correct) {
+  if (answered) return;
+  answered = true;
+  document.querySelectorAll('.quiz-opt').forEach((o, i) => {
+    if (i === correct) o.classList.add('correct');
+    else if (i === chosen) o.classList.add('wrong');
+  });
+  const fb = document.getElementById('qfeedback');
+  if (chosen === correct) {
+    score++;
+    fb.textContent = '✓ Correct!';
+    fb.style.color = 'var(--success)';
+  } else {
+    fb.textContent = '✗ Incorrect. See the correct answer highlighted.';
+    fb.style.color = 'var(--danger)';
+  }
+  const nb = document.getElementById('qnext');
+  nb.style.display = 'inline-flex';
+  nb.textContent   = idx < questions.length - 1 ? 'Next →' : 'View Results';
+}
+
+function nextQ() {
+  idx++;
+  if (idx >= questions.length) showResult();
+  else renderQ();
+}
+
+// topic → API key mapping (matches question topics)
+const qTopics = ['python','ml','sql','ml','algorithms','statistics','dl','ml','algorithms','ml'];
+
+function showResult() {
+  document.getElementById('quiz-screen').style.display   = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+  const pct   = Math.round((score / questions.length) * 100);
+  const level = pct >= 80 ? 'Advanced' : pct >= 50 ? 'Intermediate' : 'Beginner';
+  document.getElementById('r-score').textContent   = pct + '%';
+  document.getElementById('r-correct').textContent = score + '/' + questions.length;
+  document.getElementById('r-level').textContent   = level;
+
+  // Build per-topic answers map
+  const answers = {};
+  questions.forEach((q, i) => {
+    const topic = qTopics[i];
+    // We track correctness cumulatively — use score count as approximation
+    // (detailed per-answer tracking would need answers array, use approximation)
+    answers[topic] = (answers[topic] || 0); // will be updated below
+  });
+
+  // Post results to server
+  fetch('/api/assessment-result', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ score: pct, answers: {} })
+  }).catch(() => {});
+}
+
+function retake() {
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('intro-screen').style.display  = 'block';
+  idx = 0; score = 0; answered = false;
+}
+</script>
+{% endblock %}

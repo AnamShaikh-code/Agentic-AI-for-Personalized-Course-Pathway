@@ -1,0 +1,1314 @@
+{% extends "base.html" %}
+{% block title %}AI Recommendations{% endblock %}
+{% block topbar_title %}AI Recommendations{% endblock %}
+{% block topbar_sub %}Courses personalized by IBM Granite for Data Science & Computer Science.{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── MODAL OVERLAY ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; width: 100%; max-width: 860px;
+    max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;
+  }
+  .modal-header {
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .modal-title { font-size: 1.05rem; font-weight: 700; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); cursor: pointer; display: flex;
+    align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
+  }
+  .modal-close:hover { border-color: var(--danger); color: var(--danger); }
+  .modal-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+  .sidebar-nav {
+    width: 240px; flex-shrink: 0; border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 0.75rem;
+  }
+  .lesson-item {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.6rem 0.75rem; border-radius: 9px; cursor: pointer;
+    font-size: 0.82rem; font-weight: 500; color: var(--muted);
+    transition: all 0.2s; margin-bottom: 2px;
+  }
+  .lesson-item:hover { background: var(--surface2); color: var(--text); }
+  .lesson-item.active { background: rgba(79,142,247,0.12); color: var(--accent); }
+  .lesson-item.done { color: var(--accent3); }
+  .lesson-icon { font-size: 0.9rem; flex-shrink: 0; width: 18px; text-align: center; }
+  .lesson-dur  { margin-left: auto; font-size: 0.72rem; color: var(--muted2); }
+  .modal-content { flex: 1; overflow-y: auto; padding: 1.5rem; }
+
+  /* ── YOUTUBE RESOURCE BANNER ── */
+  .yt-banner {
+    width: 100%; border-radius: 12px; overflow: hidden;
+    background: linear-gradient(135deg, #1a0a0a 0%, #1e1a2e 100%);
+    border: 1px solid rgba(255,0,0,0.25);
+    display: flex; align-items: center; gap: 1.25rem;
+    padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;
+  }
+  .yt-icon-wrap {
+    width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%;
+    background: #ff0000; display: flex; align-items: center;
+    justify-content: center; font-size: 1.5rem;
+  }
+  .yt-info { flex: 1; min-width: 0; }
+  .yt-title { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem; }
+  .yt-sub   { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.75rem; line-height: 1.5; }
+  .yt-links { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .yt-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+    text-decoration: none; cursor: pointer; transition: all 0.2s;
+  }
+  .yt-btn-red  { background: #ff0000; color: #fff; }
+  .yt-btn-red:hover  { background: #cc0000; }
+  .yt-btn-ghost { background: transparent; color: var(--accent); border: 1px solid rgba(79,142,247,0.35); }
+  .yt-btn-ghost:hover { background: rgba(79,142,247,0.1); }
+
+  /* ── LESSON CONTENT ── */
+  .lesson-content h3 { font-size: 1rem; font-weight: 700; margin: 1.25rem 0 0.5rem; color: var(--text); }
+  .lesson-content h3:first-child { margin-top: 0; }
+  .lesson-content p  { font-size: 0.875rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.75rem; }
+  .lesson-content ul { padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  .lesson-content li { font-size: 0.875rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.25rem; }
+  .lesson-content strong { color: var(--text); }
+  .code-block {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.8rem;
+    color: var(--accent3); line-height: 1.7; overflow-x: auto;
+    white-space: pre; margin-bottom: 1rem;
+  }
+  .key-point {
+    background: rgba(79,142,247,0.08); border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0; padding: 0.75rem 1rem; margin-bottom: 0.75rem;
+    font-size: 0.85rem; color: var(--text);
+  }
+  .quiz-q-mini { margin-bottom: 1.25rem; }
+  .quiz-q-mini .qtext { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.6rem; }
+  .quiz-q-mini .opt {
+    padding: 0.5rem 0.875rem; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); cursor: pointer; font-size: 0.82rem; margin-bottom: 0.4rem;
+    transition: all 0.2s;
+  }
+  .quiz-q-mini .opt:hover { border-color: var(--accent); }
+  .quiz-q-mini .opt.correct { border-color: var(--success); background: rgba(34,197,94,0.12); color: var(--success); }
+  .quiz-q-mini .opt.wrong   { border-color: var(--danger);  background: rgba(239,68,68,0.08);  color: var(--danger);  }
+  .course-complete-banner {
+    background: linear-gradient(135deg, rgba(0,201,167,0.12), rgba(79,142,247,0.08));
+    border: 1px solid rgba(0,201,167,0.3); border-radius: 12px; padding: 1.5rem;
+    text-align: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="info-banner">
+  <div class="info-banner-icon">✨</div>
+  <div class="info-banner-text"><strong>Personalized by IBM Granite:</strong> These courses are generated based on your profile, assessment results, and career goals for <strong>{{ profile.track }}</strong>. Click any course to start learning!</div>
+</div>
+
+<!-- Filters -->
+<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.25rem" id="filter-btns">
+  <button class="btn btn-primary btn-sm" onclick="filter('all',this)">All</button>
+  <button class="btn btn-ghost  btn-sm" onclick="filter('beginner',this)">Beginner</button>
+  <button class="btn btn-ghost  btn-sm" onclick="filter('intermediate',this)">Intermediate</button>
+  <button class="btn btn-ghost  btn-sm" onclick="filter('advanced',this)">Advanced</button>
+</div>
+
+<div class="grid-auto" id="courses-grid"></div>
+
+<!-- ═══════════════════════ COURSE PLAYER MODAL ═══════════════════════ -->
+<div class="modal-overlay" id="course-modal">
+  <div class="modal-box">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-course-title">Course Title</div>
+        <div class="text-xs text-muted" id="modal-course-meta"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span class="badge badge-blue" id="modal-progress-badge">0% Complete</span>
+        <div class="modal-close" onclick="closeModal()">✕</div>
+      </div>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body" style="min-height:500px">
+      <!-- Lesson Sidebar -->
+      <div class="sidebar-nav" id="lesson-sidebar"></div>
+
+      <!-- Lesson Content -->
+      <div class="modal-content" id="lesson-content-area">
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//  COURSE DATA — each course has lessons with content, code, and a quiz
+// ═══════════════════════════════════════════════════════════════════════
+const courses = [
+  {
+    id: 0, emoji: '🐍', title: 'Python for Data Science & AI',
+    meta: 'Data Science · 10h · Beginner', level: 'beginner', progress: 100, bg: '#1e3a2f',
+    lessons: [
+      { title: 'Python Basics: Variables & Types', dur: '25 min', done: true, type: 'video',
+        content: `<h3>Variables & Data Types</h3>
+<p>Python is the most popular language for Data Science. Variables store values and don't need type declarations.</p>
+<div class="code-block">name = "Alex"         # str
+age = 21              # int
+gpa = 3.8             # float
+enrolled = True       # bool
+
+# Check type
+print(type(name))     # &lt;class 'str'&gt;
+print(f"Name: {name}, Age: {age}")</div>
+<h3>Collections</h3>
+<div class="code-block">subjects = ["Math", "ML", "SQL"]   # list (ordered, mutable)
+info = {"name": "Alex", "age": 21} # dict (key-value)
+coords = (10.5, 20.3)              # tuple (immutable)
+skills = {"Python", "SQL"}         # set (unique values)
+
+# List operations
+subjects.append("Statistics")
+print(subjects[0])   # "Math"
+print(len(subjects)) # 4</div>
+<div class="key-point">💡 <strong>Key Insight:</strong> Lists and dicts are your bread and butter in Data Science — master these first!</div>` },
+
+      { title: 'Control Flow: Loops & Conditions', dur: '20 min', done: true, type: 'video',
+        content: `<h3>If / Elif / Else</h3>
+<div class="code-block">score = 75
+if score >= 90:
+    grade = "A"
+elif score >= 75:
+    grade = "B"
+elif score >= 60:
+    grade = "C"
+else:
+    grade = "F"
+print(f"Grade: {grade}")  # Grade: B</div>
+<h3>Loops</h3>
+<div class="code-block"># For loop
+for i in range(5):
+    print(i)          # 0, 1, 2, 3, 4
+
+# List comprehension (Pythonic!)
+squares = [x**2 for x in range(10)]
+evens   = [x for x in range(20) if x % 2 == 0]
+
+# While loop
+count = 0
+while count &lt; 5:
+    count += 1</div>
+<div class="key-point">💡 <strong>List comprehensions</strong> are a Python superpower — they replace 3-line for loops with 1 clean line!</div>` },
+
+      { title: 'Functions & OOP Basics', dur: '30 min', done: true, type: 'video',
+        content: `<h3>Defining Functions</h3>
+<div class="code-block">def greet(name, greeting="Hello"):
+    """Greet a person."""
+    return f"{greeting}, {name}!"
+
+print(greet("Alex"))           # Hello, Alex!
+print(greet("Alex", "Hi"))     # Hi, Alex!
+
+# Lambda (anonymous function)
+double = lambda x: x * 2
+print(double(5))   # 10</div>
+<h3>Classes & Objects</h3>
+<div class="code-block">class Student:
+    def __init__(self, name, track):
+        self.name = name
+        self.track = track
+        self.courses = []
+
+    def enroll(self, course):
+        self.courses.append(course)
+        print(f"{self.name} enrolled in {course}")
+
+    def __repr__(self):
+        return f"Student({self.name}, {self.track})"
+
+alex = Student("Alex", "Data Science")
+alex.enroll("Python for DS")
+print(alex)  # Student(Alex, Data Science)</div>` },
+
+      { title: 'Quiz: Python Basics', dur: '10 min', done: true, type: 'quiz',
+        quiz: [
+          { q: 'What is the output of: [x**2 for x in range(4)]?', opts: ['[1,4,9,16]','[0,1,4,9]','[0,2,4,6]','[1,2,3,4]'], ans: 1 },
+          { q: 'Which is immutable in Python?', opts: ['List','Dict','Set','Tuple'], ans: 3 },
+        ]},
+    ]
+  },
+  {
+    id: 1, emoji: '📊', title: 'Statistics & Probability for DS',
+    meta: 'Data Science · 8h · Beginner', level: 'beginner', progress: 80, bg: '#1e2a3a',
+    lessons: [
+      { title: 'Descriptive Statistics', dur: '25 min', done: true, type: 'video',
+        content: `<h3>Measures of Central Tendency</h3>
+<p>Descriptive statistics summarize and describe the main features of a dataset.</p>
+<ul>
+<li><strong>Mean</strong> — arithmetic average: Σx / n. Sensitive to outliers.</li>
+<li><strong>Median</strong> — middle value when sorted. Robust to outliers.</li>
+<li><strong>Mode</strong> — most frequent value. Used for categorical data.</li>
+</ul>
+<div class="code-block">import numpy as np
+from scipy import stats
+
+data = [23, 25, 28, 22, 30, 27, 24, 100]  # 100 is an outlier
+
+print("Mean:  ", np.mean(data))     # 34.875 (affected by 100)
+print("Median:", np.median(data))   # 25.5  (not affected!)
+print("Mode:  ", stats.mode(data).mode[0])</div>
+<h3>Measures of Spread</h3>
+<ul>
+<li><strong>Variance (σ²)</strong> — average of squared deviations from mean</li>
+<li><strong>Std Deviation (σ)</strong> — sqrt(variance); same unit as data</li>
+<li><strong>IQR</strong> — Q3 - Q1; used to detect outliers (1.5×IQR rule)</li>
+</ul>
+<div class="code-block">print("Std Dev:", np.std(data))      # 25.17
+print("Variance:", np.var(data))    # 633.86
+q1, q3 = np.percentile(data, [25, 75])
+print(f"IQR: {q3 - q1}")</div>
+<div class="key-point">💡 Always use <strong>median + IQR</strong> when your data has outliers. Use <strong>mean + std</strong> for normally distributed data.</div>` },
+
+      { title: 'Probability & Distributions', dur: '30 min', done: true, type: 'video',
+        content: `<h3>Probability Basics</h3>
+<p>Probability measures how likely an event is. P(A) ∈ [0, 1].</p>
+<ul>
+<li>P(A) = favourable outcomes / total outcomes</li>
+<li><strong>Conditional:</strong> P(A|B) = P(A∩B) / P(B)</li>
+<li><strong>Bayes Theorem:</strong> P(A|B) = P(B|A) × P(A) / P(B)</li>
+</ul>
+<h3>Key Distributions</h3>
+<div class="code-block">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+# Normal Distribution
+x = np.linspace(-4, 4, 100)
+y = stats.norm.pdf(x, loc=0, scale=1)  # mean=0, std=1
+
+# Binomial Distribution — 10 coin flips, p=0.5
+binom = stats.binom(n=10, p=0.5)
+print("P(exactly 5 heads):", binom.pmf(5))  # 0.246
+
+# Poisson — avg 3 calls/hour; P(exactly 5 calls)?
+poisson = stats.poisson(mu=3)
+print("P(5 calls):", poisson.pmf(5))  # 0.101</div>
+<div class="key-point">💡 The <strong>Normal Distribution</strong> is everywhere — test scores, heights, measurement errors. The Central Limit Theorem says sample means follow a normal distribution regardless of the original distribution (n≥30).</div>` },
+
+      { title: 'Hypothesis Testing', dur: '35 min', done: false, type: 'video',
+        content: `<h3>Hypothesis Testing Framework</h3>
+<p>We test whether our data provides enough evidence to reject a null hypothesis.</p>
+<ul>
+<li><strong>H₀ (Null):</strong> no effect / no difference (what we want to disprove)</li>
+<li><strong>H₁ (Alternative):</strong> there IS an effect / difference</li>
+<li><strong>p-value:</strong> probability of seeing data this extreme if H₀ is true</li>
+<li><strong>Decision:</strong> if p &lt; α (usually 0.05) → reject H₀</li>
+</ul>
+<div class="code-block">from scipy import stats
+
+# Are male and female heights significantly different?
+males   = [170, 175, 180, 165, 178, 172, 168]
+females = [162, 158, 165, 170, 160, 163, 167]
+
+t_stat, p_value = stats.ttest_ind(males, females)
+print(f"t-statistic: {t_stat:.3f}")
+print(f"p-value:     {p_value:.4f}")
+
+if p_value &lt; 0.05:
+    print("Reject H₀ — significant difference!")
+else:
+    print("Fail to reject H₀ — no significant difference")</div>
+<h3>Types of Tests</h3>
+<ul>
+<li><strong>t-test</strong> — compare means (2 groups)</li>
+<li><strong>ANOVA</strong> — compare means (3+ groups)</li>
+<li><strong>Chi-Square</strong> — test independence (categorical data)</li>
+<li><strong>Z-test</strong> — large samples, known population std</li>
+</ul>` },
+
+      { title: 'Quiz: Statistics', dur: '10 min', done: false, type: 'quiz',
+        quiz: [
+          { q: 'Which measure is most robust to outliers?', opts: ['Mean','Median','Variance','Standard Deviation'], ans: 1 },
+          { q: 'If p-value = 0.03 and α = 0.05, we should:', opts: ['Fail to reject H₀','Reject H₁','Reject H₀','Accept H₀'], ans: 2 },
+        ]},
+    ]
+  },
+  {
+    id: 2, emoji: '🗄️', title: 'SQL for Data Analysis',
+    meta: 'Computer Science · 6h · Beginner', level: 'beginner', progress: 70, bg: '#2a1e3a',
+    lessons: [
+      { title: 'SQL Basics: SELECT & WHERE', dur: '20 min', done: true, type: 'video',
+        content: `<h3>Your First SQL Query</h3>
+<p>SQL (Structured Query Language) is the universal language for working with relational databases.</p>
+<div class="code-block">-- Retrieve all columns
+SELECT * FROM students;
+
+-- Specific columns
+SELECT name, score, department
+FROM students
+WHERE score > 75
+ORDER BY score DESC
+LIMIT 10;</div>
+<h3>Filtering with WHERE</h3>
+<div class="code-block">-- Multiple conditions
+SELECT * FROM students
+WHERE score > 70 AND department = 'CS';
+
+-- IN operator
+SELECT * FROM students
+WHERE department IN ('CS', 'DS', 'AI');
+
+-- LIKE for pattern matching
+SELECT * FROM students
+WHERE name LIKE 'A%';  -- names starting with A
+
+-- NULL handling
+SELECT * FROM students
+WHERE email IS NOT NULL;</div>
+<div class="key-point">💡 <strong>ORDER:</strong> SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT</div>` },
+
+      { title: 'Aggregations & GROUP BY', dur: '25 min', done: true, type: 'video',
+        content: `<h3>Aggregate Functions</h3>
+<div class="code-block">SELECT
+    department,
+    COUNT(*)        AS total_students,
+    AVG(score)      AS avg_score,
+    MAX(score)      AS top_score,
+    MIN(score)      AS lowest_score,
+    SUM(score)      AS total_score
+FROM students
+GROUP BY department
+HAVING AVG(score) > 75  -- filter AFTER aggregation
+ORDER BY avg_score DESC;</div>
+<div class="key-point">💡 <strong>WHERE vs HAVING:</strong> WHERE filters rows BEFORE grouping. HAVING filters groups AFTER GROUP BY.</div>
+<h3>String & Date Functions</h3>
+<div class="code-block">SELECT
+    UPPER(name)        AS name_upper,
+    LENGTH(name)       AS name_length,
+    YEAR(enroll_date)  AS enroll_year,
+    DATEDIFF(NOW(), enroll_date) AS days_enrolled
+FROM students;</div>` },
+
+      { title: 'JOINs & Subqueries', dur: '30 min', done: false, type: 'video',
+        content: `<h3>Types of JOINs</h3>
+<div class="code-block">-- INNER JOIN — only matching rows
+SELECT s.name, c.course_name, e.grade
+FROM students s
+INNER JOIN enrollments e ON s.id = e.student_id
+INNER JOIN courses c     ON e.course_id = c.id;
+
+-- LEFT JOIN — all students, even those not enrolled
+SELECT s.name, c.course_name
+FROM students s
+LEFT JOIN enrollments e ON s.id = e.student_id
+LEFT JOIN courses c     ON e.course_id = c.id;</div>
+<h3>Subqueries & CTEs</h3>
+<div class="code-block">-- Subquery: students above average score
+SELECT name, score FROM students
+WHERE score > (SELECT AVG(score) FROM students);
+
+-- CTE (cleaner version)
+WITH avg_scores AS (
+    SELECT department, AVG(score) AS dept_avg
+    FROM students GROUP BY department
+)
+SELECT s.name, s.score, a.dept_avg
+FROM students s
+JOIN avg_scores a ON s.department = a.department
+WHERE s.score > a.dept_avg;</div>` },
+
+      { title: 'Window Functions', dur: '25 min', done: false, type: 'video',
+        content: `<h3>Window Functions — The Power Tool</h3>
+<p>Window functions perform calculations across rows related to the current row, without collapsing them like GROUP BY does.</p>
+<div class="code-block">SELECT
+    name,
+    department,
+    score,
+    -- Rank within each department
+    RANK()        OVER (PARTITION BY department ORDER BY score DESC) AS dept_rank,
+    DENSE_RANK()  OVER (PARTITION BY department ORDER BY score DESC) AS dense_rank,
+    ROW_NUMBER()  OVER (PARTITION BY department ORDER BY score DESC) AS row_num,
+    -- Running total
+    SUM(score)    OVER (PARTITION BY department ORDER BY score) AS running_total,
+    -- Previous/next row
+    LAG(score, 1)  OVER (ORDER BY score) AS prev_score,
+    LEAD(score, 1) OVER (ORDER BY score) AS next_score,
+    -- Percentile
+    PERCENT_RANK() OVER (ORDER BY score) AS percentile
+FROM students;</div>
+<div class="key-point">💡 Window functions are one of the <strong>most asked SQL topics in interviews</strong> — practice these!</div>` },
+
+      { title: 'Quiz: SQL', dur: '10 min', done: false, type: 'quiz',
+        quiz: [
+          { q: 'Which clause filters data AFTER GROUP BY?', opts: ['WHERE','HAVING','ORDER BY','LIMIT'], ans: 1 },
+          { q: 'What does LEFT JOIN return?', opts: ['Only matching rows','All from left + matching from right','All rows from both tables','All from right only'], ans: 1 },
+        ]},
+    ]
+  },
+  {
+    id: 3, emoji: '🤖', title: 'Machine Learning with scikit-learn',
+    meta: 'Data Science · 14h · Intermediate', level: 'intermediate', progress: 55, bg: '#1e3a5f',
+    lessons: [
+      { title: 'ML Workflow & Data Preprocessing', dur: '30 min', done: true, type: 'video',
+        content: `<h3>The ML Pipeline</h3>
+<p>Every ML project follows the same workflow:</p>
+<ul>
+<li>1. Define problem (regression/classification?)</li>
+<li>2. Collect & explore data (EDA)</li>
+<li>3. Preprocess data (clean, encode, scale)</li>
+<li>4. Split into train/test sets</li>
+<li>5. Choose & train model</li>
+<li>6. Evaluate performance</li>
+<li>7. Tune hyperparameters</li>
+<li>8. Deploy</li>
+</ul>
+<div class="code-block">import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+
+df = pd.read_csv('data.csv')
+df.dropna(inplace=True)   # remove missing values
+
+# Encode categorical columns
+le = LabelEncoder()
+df['department'] = le.fit_transform(df['department'])
+
+X = df.drop('target', axis=1)  # features
+y = df['target']                # label
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Scale features (important for SVM, KNN, Logistic Regression)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test  = scaler.transform(X_test)</div>
+<div class="key-point">💡 Always fit the scaler on <strong>training data only</strong> — then transform both train and test. Never fit on test data (data leakage!).</div>` },
+
+      { title: 'Supervised Learning: Classification', dur: '35 min', done: true, type: 'video',
+        content: `<h3>Classification Algorithms</h3>
+<div class="code-block">from sklearn.linear_model    import LogisticRegression
+from sklearn.tree            import DecisionTreeClassifier
+from sklearn.ensemble        import RandomForestClassifier
+from sklearn.svm             import SVC
+from sklearn.neighbors       import KNeighborsClassifier
+from sklearn.metrics         import (accuracy_score, precision_score,
+                                     recall_score, f1_score, classification_report)
+
+models = {
+    'Logistic Regression': LogisticRegression(),
+    'Decision Tree':       DecisionTreeClassifier(max_depth=5),
+    'Random Forest':       RandomForestClassifier(n_estimators=100),
+    'SVM':                 SVC(kernel='rbf'),
+    'KNN':                 KNeighborsClassifier(n_neighbors=5),
+}
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    print(f"{name}: Accuracy={accuracy_score(y_test, y_pred):.3f} | F1={f1_score(y_test, y_pred, average='weighted'):.3f}")</div>
+<h3>Evaluation Metrics</h3>
+<ul>
+<li><strong>Accuracy</strong> — correct / total. Misleading for imbalanced data!</li>
+<li><strong>Precision</strong> — TP/(TP+FP). Of predicted positives, how many are correct?</li>
+<li><strong>Recall</strong> — TP/(TP+FN). Of actual positives, how many did we catch?</li>
+<li><strong>F1-Score</strong> — harmonic mean of precision and recall. Use when classes are imbalanced.</li>
+<li><strong>ROC-AUC</strong> — area under the ROC curve. Higher = better. 1.0 = perfect.</li>
+</ul>` },
+
+      { title: 'Overfitting & Cross-Validation', dur: '30 min', done: false, type: 'video',
+        content: `<h3>Overfitting vs Underfitting</h3>
+<ul>
+<li><strong>Underfitting (High Bias)</strong> — model too simple; poor on both train & test</li>
+<li><strong>Good Fit</strong> — low error on both train and test</li>
+<li><strong>Overfitting (High Variance)</strong> — model memorizes training data; fails on test</li>
+</ul>
+<div class="code-block">from sklearn.model_selection import cross_val_score, KFold
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(n_estimators=100)
+
+# K-Fold Cross-Validation (k=5)
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+scores = cross_val_score(model, X, y, cv=kf, scoring='accuracy')
+
+print(f"CV Scores: {scores}")
+print(f"Mean: {scores.mean():.3f} ± {scores.std():.3f}")</div>
+<h3>Fixing Overfitting</h3>
+<ul>
+<li>Reduce model complexity (max_depth, min_samples)</li>
+<li>Add more training data</li>
+<li>Regularization (L1/L2)</li>
+<li>Dropout (for neural networks)</li>
+<li>Early stopping</li>
+</ul>` },
+
+      { title: 'Quiz: Machine Learning', dur: '10 min', done: false, type: 'quiz',
+        quiz: [
+          { q: 'A model scores 99% on training data but 55% on test data. This is:', opts: ['Underfitting','Perfect fit','Overfitting','Data leakage'], ans: 2 },
+          { q: 'Which metric is best for imbalanced datasets?', opts: ['Accuracy','Precision only','F1-Score','Model size'], ans: 2 },
+        ]},
+    ]
+  },
+  {
+    id: 4, emoji: '📈', title: 'Data Visualization with Plotly & Seaborn',
+    meta: 'Data Science · 8h · Intermediate', level: 'intermediate', progress: 40, bg: '#1e3a3a',
+    lessons: [
+      { title: 'EDA & Matplotlib Basics', dur: '25 min', done: true, type: 'video',
+        content: `<h3>Why Visualize?</h3>
+<p>Exploratory Data Analysis (EDA) helps you understand your data before modeling. Visuals reveal patterns, outliers, and relationships instantly.</p>
+<h3>EDA Checklist</h3>
+<ul>
+<li>df.shape, df.info(), df.describe()</li>
+<li>Missing values: df.isnull().sum()</li>
+<li>Distribution of each numeric column (histogram)</li>
+<li>Correlation heatmap</li>
+<li>Outlier detection (box plots, Z-score)</li>
+<li>Target variable distribution</li>
+</ul>
+<div class="code-block">import matplotlib.pyplot as plt
+import numpy as np
+
+# Line chart
+x = np.arange(0, 10, 0.1)
+plt.figure(figsize=(10, 4))
+plt.plot(x, np.sin(x), label='sin(x)', color='#4f8ef7')
+plt.plot(x, np.cos(x), label='cos(x)', color='#00c9a7')
+plt.title('Sine and Cosine Waves')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()</div>` },
+
+      { title: 'Seaborn Statistical Plots', dur: '30 min', done: false, type: 'video',
+        content: `<h3>Beautiful Statistical Visualizations</h3>
+<div class="code-block">import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Set style
+sns.set_style("darkgrid")
+
+# 1. Distribution plot
+fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+
+sns.histplot(df['score'], kde=True, ax=axes[0,0], color='#4f8ef7')
+axes[0,0].set_title('Score Distribution')
+
+# 2. Box plot (outliers)
+sns.boxplot(x='department', y='score', data=df, ax=axes[0,1])
+axes[0,1].set_title('Scores by Department')
+
+# 3. Scatter with regression
+sns.regplot(x='experience', y='salary', data=df, ax=axes[1,0])
+axes[1,0].set_title('Experience vs Salary')
+
+# 4. Correlation heatmap
+sns.heatmap(df.corr(), annot=True, fmt='.2f',
+            cmap='RdYlGn', center=0, ax=axes[1,1])
+axes[1,1].set_title('Correlation Matrix')
+
+plt.tight_layout()
+plt.show()</div>` },
+
+      { title: 'Interactive Charts with Plotly', dur: '30 min', done: false, type: 'video',
+        content: `<h3>Plotly — Interactive Visualizations</h3>
+<p>Plotly creates interactive, web-ready charts with zoom, pan, hover tooltips, and more!</p>
+<div class="code-block">import plotly.express as px
+import plotly.graph_objects as go
+
+# Interactive scatter plot
+fig = px.scatter(df, x='experience', y='salary',
+                 color='department', size='score',
+                 hover_data=['name'],
+                 title='Experience vs Salary by Department')
+fig.show()
+
+# Interactive bar chart
+fig = px.bar(df.groupby('dept')['salary'].mean().reset_index(),
+             x='dept', y='salary',
+             color='salary', color_continuous_scale='Blues',
+             title='Average Salary by Department')
+fig.update_layout(template='plotly_dark')
+fig.show()
+
+# Sunburst (hierarchical)
+fig = px.sunburst(df, path=['department', 'level'], values='count')
+fig.show()</div>
+<div class="key-point">💡 Use <strong>Plotly</strong> for web dashboards and reports. Use <strong>Seaborn/Matplotlib</strong> for publications and static images.</div>` },
+
+      { title: 'Quiz: Data Visualization', dur: '10 min', done: false, type: 'quiz',
+        quiz: [
+          { q: 'Which chart is best for showing distribution of a single numeric variable?', opts: ['Bar chart','Histogram','Scatter plot','Pie chart'], ans: 1 },
+          { q: 'What does a Heatmap typically show?', opts: ['Time trends','Correlation between variables','Geographic data','Part-of-whole'], ans: 1 },
+        ]},
+    ]
+  },
+  {
+    id: 5, emoji: '🧠', title: 'Deep Learning with TensorFlow & Keras',
+    meta: 'Data Science · 16h · Advanced', level: 'advanced', progress: 0, bg: '#1e1e3a',
+    lessons: [
+      { title: 'Neural Networks from Scratch', dur: '40 min', done: false, type: 'video',
+        content: `<h3>How Neural Networks Work</h3>
+<p>A neural network is a series of layers of neurons. Each neuron takes inputs, multiplies by weights, adds a bias, and passes through an activation function.</p>
+<ul>
+<li><strong>Input Layer</strong> — receives features (e.g., 20 features = 20 neurons)</li>
+<li><strong>Hidden Layers</strong> — learn intermediate representations</li>
+<li><strong>Output Layer</strong> — final prediction (1 neuron for binary, n for n-class)</li>
+</ul>
+<div class="code-block">import tensorflow as tf
+
+# Build a simple ANN
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(128, activation='relu', input_shape=(20,)),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Dense(64,  activation='relu'),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(1,   activation='sigmoid')  # binary
+])
+
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+    loss='binary_crossentropy',
+    metrics=['accuracy', tf.keras.metrics.AUC()]
+)
+
+model.summary()  # see layer shapes</div>
+<h3>Training the Model</h3>
+<div class="code-block">history = model.fit(
+    X_train, y_train,
+    epochs=50,
+    batch_size=32,
+    validation_split=0.2,
+    callbacks=[
+        tf.keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True),
+        tf.keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=5)
+    ]
+)</div>` },
+
+      { title: 'CNNs for Image Classification', dur: '45 min', done: false, type: 'video',
+        content: `<h3>Convolutional Neural Networks (CNN)</h3>
+<p>CNNs are designed for image data. They use convolution filters to detect features like edges, shapes, and textures.</p>
+<div class="code-block">model = tf.keras.Sequential([
+    # Block 1
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(32,32,3)),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.BatchNormalization(),
+
+    # Block 2
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.BatchNormalization(),
+
+    # Classifier head
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dense(10, activation='softmax')  # 10 classes
+])
+
+# Load CIFAR-10
+(X_train, y_train), (X_test, y_test) = tf.keras.datasets.cifar10.load_data()
+X_train, X_test = X_train / 255.0, X_test / 255.0  # normalize</div>` },
+
+      { title: 'Quiz: Deep Learning', dur: '10 min', done: false, type: 'quiz',
+        quiz: [
+          { q: 'What does Dropout do in a neural network?', opts: ['Adds more neurons','Randomly zeros out neurons to prevent overfitting','Increases learning rate','Removes layers'], ans: 1 },
+          { q: 'Which network type is best suited for image data?', opts: ['RNN','ANN','CNN','LSTM'], ans: 2 },
+        ]},
+    ]
+  },
+  {
+    id: 6,  emoji: '💬', title: 'Natural Language Processing (NLP)',
+    meta: 'AI/ML · 12h · Advanced', level: 'advanced', progress: 0, bg: '#1a2a1e',
+    lessons: [
+      { title: 'Text Preprocessing Pipeline', dur: '30 min', done: false, type: 'video',
+        content: `<h3>NLP Preprocessing Steps</h3>
+<div class="code-block">import nltk
+from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.corpus   import stopwords
+from nltk.stem     import PorterStemmer, WordNetLemmatizer
+
+nltk.download(['punkt','stopwords','wordnet'])
+
+text = "Machine Learning is transforming Data Science applications worldwide!"
+
+# 1. Tokenize
+tokens = word_tokenize(text.lower())
+
+# 2. Remove stop words
+stop_words = set(stopwords.words('english'))
+filtered = [w for w in tokens if w.isalpha() and w not in stop_words]
+
+# 3. Stemming (crude)
+stemmer = PorterStemmer()
+stemmed = [stemmer.stem(w) for w in filtered]
+
+# 4. Lemmatization (better)
+lemmatizer = WordNetLemmatizer()
+lemmatized = [lemmatizer.lemmatize(w) for w in filtered]
+
+print("Original:   ", tokens[:6])
+print("Filtered:   ", filtered[:6])
+print("Lemmatized: ", lemmatized[:6])</div>` },
+
+      { title: 'TF-IDF & Word Embeddings', dur: '35 min', done: false, type: 'video',
+        content: `<h3>From Bag-of-Words to Embeddings</h3>
+<div class="code-block">from sklearn.feature_extraction.text import TfidfVectorizer
+
+corpus = [
+    "Data Science is amazing",
+    "Machine Learning uses data",
+    "Python is great for data science",
+    "Deep learning needs lots of data"
+]
+
+# TF-IDF
+vectorizer = TfidfVectorizer(max_features=20, stop_words='english')
+X = vectorizer.fit_transform(corpus)
+print("TF-IDF shape:", X.shape)  # (4, 20)
+print("Features:", vectorizer.get_feature_names_out())</div>
+<h3>HuggingFace Transformers</h3>
+<div class="code-block">from transformers import pipeline
+
+# Sentiment analysis
+classifier = pipeline("sentiment-analysis")
+results = classifier([
+    "LearnMate is an amazing platform!",
+    "I am struggling with this concept."
+])
+for r in results:
+    print(r['label'], r['score']:.3f)</div>` },
+
+      { title: 'Quiz: NLP', dur: '10 min', done: false, type: 'quiz',
+        quiz: [
+          { q: 'What does TF-IDF measure?', opts: ['Grammar errors','Word importance in a document relative to a corpus','Sentence length','Sentiment score'], ans: 1 },
+          { q: 'What is the key innovation of Word2Vec?', opts: ['Counts word frequency','Represents words as dense vectors capturing semantic meaning','Removes stop words','Translates between languages'], ans: 1 },
+        ]},
+    ]
+  },
+  {
+    id: 7,  emoji: '☁️', title: 'IBM watsonx.ai & Watson Studio',
+    meta: 'IBM Cloud · 8h · Intermediate', level: 'intermediate', progress: 0, bg: '#0f2a3a',
+    lessons: [
+      { title: 'IBM Cloud & watsonx Overview', dur: '20 min', done: false, type: 'video',
+        content: `<h3>What is IBM watsonx?</h3>
+<p>IBM watsonx is an enterprise AI and data platform with three core components:</p>
+<ul>
+<li><strong>watsonx.ai</strong> — studio for building, training, and deploying AI models + foundation models (IBM Granite)</li>
+<li><strong>watsonx.data</strong> — data lakehouse for all your structured & unstructured data</li>
+<li><strong>watsonx.governance</strong> — AI governance, fairness, and explainability</li>
+</ul>
+<h3>IBM Granite Models Available</h3>
+<ul>
+<li>ibm/granite-3-3-8b-instruct — instruction-following LLM (powers LearnMate!)</li>
+<li>ibm/granite-20b-multilingual — multi-language support</li>
+<li>ibm/granite-code-34b-instruct — code generation</li>
+<li>ibm/granite-timeseries-ttm-r2 — time series forecasting</li>
+</ul>
+<div class="key-point">💡 IBM Cloud Lite is <strong>100% FREE</strong> — sign up at cloud.ibm.com with no credit card required!</div>` },
+
+      { title: 'Calling IBM Granite API in Python', dur: '35 min', done: false, type: 'video',
+        content: `<h3>Full Python Integration</h3>
+<div class="code-block">from ibm_watsonx_ai import APIClient, Credentials
+from ibm_watsonx_ai.foundation_models import ModelInference
+from ibm_watsonx_ai.metanames import GenTextParamsMetaNames as Params
+
+# Step 1: Authenticate
+credentials = Credentials(
+    url="https://us-south.ml.cloud.ibm.com",
+    api_key="YOUR_IBM_API_KEY"
+)
+client = APIClient(credentials, project_id="YOUR_PROJECT_ID")
+
+# Step 2: Create model inference
+model = ModelInference(
+    model_id="ibm/granite-3-3-8b-instruct",
+    api_client=client,
+    project_id="YOUR_PROJECT_ID",
+    params={
+        Params.MAX_NEW_TOKENS:  500,
+        Params.DECODING_METHOD: "greedy",
+        Params.REPETITION_PENALTY: 1.1,
+        Params.STOP_SEQUENCES: ["\n\n"]
+    }
+)
+
+# Step 3: Generate text
+prompt = """You are a Data Science tutor.
+Explain overfitting in simple terms with an example:"""
+
+response = model.generate_text(prompt=prompt)
+print(response)</div>
+<h3>Prompt Engineering Best Practices</h3>
+<ul>
+<li><strong>Be specific</strong> — "Explain X for a beginner" vs "Explain X"</li>
+<li><strong>Give context</strong> — add student profile info as system context</li>
+<li><strong>Few-shot prompting</strong> — show examples of desired output format</li>
+<li><strong>Chain-of-thought</strong> — "Think step by step before answering"</li>
+</ul>` },
+
+      { title: 'Quiz: IBM watsonx', dur: '10 min', done: false, type: 'quiz',
+        quiz: [
+          { q: 'Which IBM Granite model is used in LearnMate?', opts: ['granite-20b-multilingual','granite-3-3-8b-instruct','granite-code-34b','granite-timeseries'], ans: 1 },
+          { q: 'IBM Cloud Lite tier:', opts: ['Requires credit card','Is free with no credit card needed','Costs $10/month','Only available in USA'], ans: 1 },
+        ]},
+    ]
+  },
+  {
+    id: 8,  emoji: '📦', title: 'Data Structures & Algorithms (CS Core)',
+    meta: 'Computer Science · 20h · Intermediate', level: 'intermediate', progress: 35, bg: '#2a2a1e',
+    lessons: [
+      { title: 'Arrays, Lists & Complexity', dur: '30 min', done: true, type: 'video',
+        content: `<h3>Big-O Notation</h3>
+<p>Big-O describes how an algorithm's time/space grows as input size (n) increases.</p>
+<ul>
+<li><strong>O(1)</strong> — Constant: dict lookup, array index access</li>
+<li><strong>O(log n)</strong> — Logarithmic: binary search</li>
+<li><strong>O(n)</strong> — Linear: array scan</li>
+<li><strong>O(n log n)</strong> — Linearithmic: merge sort, heap sort</li>
+<li><strong>O(n²)</strong> — Quadratic: bubble sort, nested loops</li>
+</ul>
+<div class="code-block"># O(1) — constant time
+my_dict = {"name": "Alex", "age": 21}
+print(my_dict["name"])  # O(1) lookup
+
+# O(n) — linear scan
+def find_max(arr):
+    max_val = arr[0]
+    for x in arr:          # O(n)
+        if x > max_val:
+            max_val = x
+    return max_val
+
+# O(n²) — nested loops (bad!)
+def has_duplicate(arr):
+    for i in range(len(arr)):      # O(n)
+        for j in range(i+1, len(arr)):  # O(n)
+            if arr[i] == arr[j]: return True
+    return False
+
+# O(n) — better with set
+def has_duplicate_fast(arr):
+    return len(arr) != len(set(arr))</div>` },
+
+      { title: 'Stacks, Queues & Hash Maps', dur: '30 min', done: false, type: 'video',
+        content: `<h3>Stack (LIFO)</h3>
+<div class="code-block">stack = []
+stack.append(1)    # push
+stack.append(2)
+stack.append(3)
+print(stack.pop()) # pop → 3 (Last In, First Out)
+
+# Real use: undo/redo, recursion call stack, balanced parentheses
+def is_balanced(s):
+    stack = []
+    pairs = {')':'(', ']':'[', '}':'{'}
+    for ch in s:
+        if ch in '([{': stack.append(ch)
+        elif ch in ')]}':
+            if not stack or stack[-1] != pairs[ch]: return False
+            stack.pop()
+    return len(stack) == 0</div>
+<h3>Queue (FIFO)</h3>
+<div class="code-block">from collections import deque
+queue = deque()
+queue.append(1)     # enqueue
+queue.append(2)
+print(queue.popleft())  # dequeue → 1 (First In, First Out)</div>
+<h3>Hash Map (Dict) — O(1) operations</h3>
+<div class="code-block"># Frequency count (very common in interviews!)
+def char_frequency(s):
+    freq = {}
+    for ch in s:
+        freq[ch] = freq.get(ch, 0) + 1
+    return freq
+
+print(char_frequency("hello"))  # {'h':1, 'e':1, 'l':2, 'o':1}</div>` },
+
+      { title: 'Sorting & Searching', dur: '35 min', done: false, type: 'video',
+        content: `<h3>Binary Search — O(log n)</h3>
+<div class="code-block">def binary_search(arr, target):
+    left, right = 0, len(arr) - 1
+    while left <= right:
+        mid = (left + right) // 2
+        if arr[mid] == target:   return mid
+        elif arr[mid] < target:  left  = mid + 1
+        else:                    right = mid - 1
+    return -1
+
+arr = [1, 3, 5, 7, 9, 11, 13, 15]
+print(binary_search(arr, 7))   # → 3</div>
+<h3>Merge Sort — O(n log n)</h3>
+<div class="code-block">def merge_sort(arr):
+    if len(arr) <= 1: return arr
+    mid = len(arr) // 2
+    left  = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return merge(left, right)
+
+def merge(left, right):
+    result = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]: result.append(left[i]);  i += 1
+        else:                   result.append(right[j]); j += 1
+    result.extend(left[i:])
+    result.extend(right[j:])
+    return result</div>` },
+
+      { title: 'Quiz: DSA', dur: '10 min', done: false, type: 'quiz',
+        quiz: [
+          { q: 'What is the time complexity of Binary Search?', opts: ['O(n)','O(n²)','O(log n)','O(1)'], ans: 2 },
+          { q: 'A Stack uses which ordering principle?', opts: ['FIFO','LILO','LIFO','FILO'], ans: 2 },
+        ]},
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let currentCourse = null;
+let currentLesson = 0;
+let lessonProgress = {};  // courseId -> { lessonIdx: done }
+
+const levelBadge = { beginner:'badge-green', intermediate:'badge-blue', advanced:'badge-purple' };
+
+// ══════════════════════════════════════════════
+//  RENDER COURSE CARDS
+// ══════════════════════════════════════════════
+function renderCourses(list) {
+  document.getElementById('courses-grid').innerHTML = list.map(c => {
+    const ytURL = ytSearchURL(c.title + ' full course tutorial');
+    return `
+    <div class="course-card">
+      <div class="course-thumb" style="background:${c.bg};cursor:pointer;position:relative" onclick="openCourse(${c.id})">
+        <span style="font-size:2.5rem">${c.emoji}</span>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;background:rgba(0,0,0,0.4);border-radius:inherit"
+             onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+          <span style="font-size:2rem">▶</span>
+        </div>
+      </div>
+      <div class="course-body">
+        <div class="course-title" onclick="openCourse(${c.id})" style="cursor:pointer">${c.title}</div>
+        <div class="course-meta">${c.meta}</div>
+        <div class="progress-bar" style="margin-bottom:0.5rem">
+          <div class="progress-fill pf-blue" style="width:${c.progress}%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+          <span class="badge ${levelBadge[c.level]}">${c.level}</span>
+          <span style="font-size:0.75rem;color:var(--accent);font-weight:600;cursor:pointer" onclick="openCourse(${c.id})">
+            ${c.progress === 100 ? '✓ Completed' : c.progress > 0 ? '▶ Resume' : '▶ Start'}
+          </span>
+        </div>
+        <a href="${ytURL}" target="_blank" rel="noopener"
+           onclick="event.stopPropagation()"
+           style="display:inline-flex;align-items:center;gap:5px;font-size:0.72rem;color:#ff4444;text-decoration:none;font-weight:600;padding:3px 0;">
+          ▶ Watch on YouTube
+        </a>
+      </div>
+    </div>
+  `}).join('');
+}
+
+function filter(lvl, btn) {
+  document.querySelectorAll('#filter-btns .btn').forEach(b => { b.className = 'btn btn-ghost btn-sm'; });
+  btn.className = 'btn btn-primary btn-sm';
+  renderCourses(lvl === 'all' ? courses : courses.filter(c => c.level === lvl));
+}
+
+// ══════════════════════════════════════════════
+//  OPEN / CLOSE MODAL
+// ══════════════════════════════════════════════
+function openCourse(id) {
+  currentCourse = courses[id];
+  currentLesson = 0;
+  // find first undone lesson
+  const firstUndone = currentCourse.lessons.findIndex(l => !l.done);
+  if (firstUndone !== -1) currentLesson = firstUndone;
+
+  document.getElementById('modal-course-title').textContent = currentCourse.title;
+  document.getElementById('modal-course-meta').textContent  = currentCourse.meta;
+  updateProgressBadge();
+  renderSidebar();
+  renderLesson(currentLesson);
+  document.getElementById('course-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('course-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  renderCourses(courses); // refresh progress
+}
+
+// close on overlay click
+document.getElementById('course-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ══════════════════════════════════════════════
+//  SIDEBAR
+// ══════════════════════════════════════════════
+function renderSidebar() {
+  const sb = document.getElementById('lesson-sidebar');
+  // YouTube full-course search at top of sidebar
+  const ytCourseURL = ytSearchURL(currentCourse.title + ' full course tutorial');
+  sb.innerHTML = `
+    <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);padding:0 0.5rem;margin-bottom:0.5rem">
+      ${currentCourse.lessons.length} Lessons
+    </div>
+    ${currentCourse.lessons.map((l, i) => `
+      <div class="lesson-item ${i === currentLesson ? 'active' : ''} ${l.done ? 'done' : ''}"
+           onclick="renderLesson(${i})">
+        <span class="lesson-icon">${l.done ? '✓' : l.type === 'quiz' ? '📝' : '▶'}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.title}</span>
+        <span class="lesson-dur">${l.dur}</span>
+      </div>
+    `).join('')}
+    <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+      <a href="${ytCourseURL}" target="_blank" rel="noopener"
+         style="display:flex;align-items:center;gap:6px;padding:0.5rem 0.75rem;border-radius:8px;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.2);color:#ff4444;font-size:0.75rem;font-weight:600;text-decoration:none;transition:all 0.2s;"
+         onmouseover="this.style.background='rgba(255,0,0,0.18)'" onmouseout="this.style.background='rgba(255,0,0,0.1)'">
+        ▶ Full Course on YouTube
+      </a>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+//  RENDER LESSON
+// ══════════════════════════════════════════════
+// Build a YouTube search URL for the given query string
+function ytSearchURL(query) {
+  return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query);
+}
+
+function renderLesson(idx) {
+  currentLesson = idx;
+  const lesson  = currentCourse.lessons[idx];
+  const isLast  = idx === currentCourse.lessons.length - 1;
+  renderSidebar();
+
+  const area = document.getElementById('lesson-content-area');
+
+  if (lesson.type === 'quiz') {
+    renderQuiz(lesson, idx);
+    return;
+  }
+
+  // Build YouTube search queries
+  const primaryQuery   = `${currentCourse.title} ${lesson.title} tutorial`;
+  const secondaryQuery = `${lesson.title} explained data science`;
+  const ytPrimary   = ytSearchURL(primaryQuery);
+  const ytSecondary = ytSearchURL(secondaryQuery);
+
+  area.innerHTML = `
+    <!-- YouTube Resource Banner -->
+    <div class="yt-banner">
+      <div class="yt-icon-wrap">▶</div>
+      <div class="yt-info">
+        <div class="yt-title">${currentCourse.emoji} ${lesson.title}</div>
+        <div class="yt-sub">
+          Watch free YouTube tutorials for this topic — hand-picked search results open directly on YouTube.
+          Read the lesson notes below, then watch a video to reinforce your learning. <strong style="color:var(--text)">${lesson.dur} recommended</strong>.
+        </div>
+        <div class="yt-links">
+          <a class="yt-btn yt-btn-red" href="${ytPrimary}" target="_blank" rel="noopener">
+            ▶ Watch on YouTube
+          </a>
+          <a class="yt-btn yt-btn-ghost" href="${ytSecondary}" target="_blank" rel="noopener">
+            🔍 More Videos
+          </a>
+          <a class="yt-btn yt-btn-ghost" href="https://www.youtube.com/results?search_query=${encodeURIComponent(lesson.title + ' interview question')}" target="_blank" rel="noopener">
+            🎯 Interview Q&amp;A
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lesson Content -->
+    <div class="lesson-content">${lesson.content}</div>
+
+    <!-- Navigation -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)">
+      <button class="btn btn-ghost btn-sm" onclick="renderLesson(${idx-1})" ${idx===0?'disabled style="opacity:0.4"':''}>← Previous</button>
+      <button class="btn btn-primary btn-sm" onclick="markDone(${idx})" id="done-btn-${idx}">
+        ${lesson.done ? '✓ Completed' : 'Mark as Complete →'}
+      </button>
+      ${!isLast ? `<button class="btn btn-ghost btn-sm" onclick="renderLesson(${idx+1})">Next →</button>` : `<button class="btn btn-ghost btn-sm" onclick="closeModal()">Finish Course</button>`}
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+//  TOAST NOTIFICATION
+// ══════════════════════════════════════════════
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.style.cssText = `
+    position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;
+    background:var(--surface2);border:1px solid var(--border2);
+    color:var(--text);padding:0.75rem 1.25rem;border-radius:12px;
+    font-size:0.875rem;font-weight:500;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    border-left:3px solid ${type==='success'?'var(--accent3)':type==='xp'?'var(--accent4)':'var(--accent)'};
+    animation:slideIn 0.3s ease;max-width:320px;
+  `;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.4s'; setTimeout(()=>t.remove(),400); }, 3000);
+}
+
+// ══════════════════════════════════════════════
+//  MARK AS DONE
+// ══════════════════════════════════════════════
+function markDone(idx) {
+  currentCourse.lessons[idx].done = true;
+  const btn = document.getElementById(`done-btn-${idx}`);
+  if (btn) { btn.textContent = '✓ Completed'; btn.className = 'btn btn-ghost btn-sm'; }
+
+  // Update course progress
+  const done = currentCourse.lessons.filter(l => l.done).length;
+  currentCourse.progress = Math.round((done / currentCourse.lessons.length) * 100);
+  updateProgressBadge();
+  renderSidebar();
+
+  // Persist to server
+  fetch('/api/complete-lesson', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      course_id: currentCourse.id,
+      lesson_idx: idx,
+      course_title: currentCourse.title,
+      lesson_title: currentCourse.lessons[idx].title,
+      total_lessons: currentCourse.lessons.length
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.already_done) {
+      showToast(`+${data.xp_awarded} XP — "${currentCourse.lessons[idx].title}" done!`, 'xp');
+    }
+    if (data.new_course) {
+      setTimeout(() => showToast(`🏆 Course complete! "${currentCourse.title}" added to your profile.`, 'success'), 1200);
+    }
+  })
+  .catch(() => {});
+
+  // Auto-advance
+  const next = idx + 1;
+  if (next < currentCourse.lessons.length) {
+    setTimeout(() => renderLesson(next), 600);
+  } else {
+    setTimeout(() => showCompletion(), 600);
+  }
+}
+
+function showCompletion() {
+  document.getElementById('lesson-content-area').innerHTML = `
+    <div class="course-complete-banner">
+      <div style="font-size:3rem;margin-bottom:0.75rem">🎉</div>
+      <div style="font-size:1.2rem;font-weight:700;margin-bottom:0.5rem">Course Complete!</div>
+      <div class="text-muted text-sm" style="margin-bottom:1.25rem">
+        You've completed <strong style="color:var(--text)">${currentCourse.title}</strong>.<br>
+        IBM Granite has updated your learning roadmap and skill profile.
+      </div>
+      <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:0.75rem">
+        <button class="btn btn-primary" onclick="closeModal()">Back to Courses</button>
+        <a href="/progress" class="btn btn-ghost">View Progress</a>
+        <a href="/chat"     class="btn btn-ghost">Ask AI Coach</a>
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted);text-align:center">
+        Your skills have been updated in the Progress Tracker ↗
+      </div>
+    </div>
+  `;
+}
+
+function updateProgressBadge() {
+  const done = currentCourse.lessons.filter(l => l.done).length;
+  const pct  = Math.round((done / currentCourse.lessons.length) * 100);
+  const el = document.getElementById('modal-progress-badge');
+  if (el) el.textContent = pct + '% Complete';
+}
+
+// ══════════════════════════════════════════════
+//  QUIZ
+// ══════════════════════════════════════════════
+function renderQuiz(lesson, lessonIdx) {
+  let answered = new Array(lesson.quiz.length).fill(false);
+  let score = 0;
+
+  const area = document.getElementById('lesson-content-area');
+  area.innerHTML = `
+    <div style="font-size:1rem;font-weight:700;margin-bottom:1.25rem">📝 ${lesson.title}</div>
+    ${lesson.quiz.map((q, qi) => `
+      <div class="quiz-q-mini" id="q-${qi}">
+        <div class="qtext">${qi+1}. ${q.q}</div>
+        ${q.opts.map((opt, oi) => `
+          <div class="opt" id="opt-${qi}-${oi}" onclick="answerQ(${qi},${oi},${q.ans},${lessonIdx})">${opt}</div>
+        `).join('')}
+        <div id="fb-${qi}" style="font-size:0.78rem;margin-top:0.4rem"></div>
+      </div>
+    `).join('')}
+    <div id="quiz-result" style="display:none;margin-top:1rem"></div>
+    <div style="margin-top:1.25rem;display:flex;gap:0.75rem">
+      <button class="btn btn-ghost btn-sm" onclick="renderLesson(${lessonIdx-1})" ${lessonIdx===0?'disabled':''}>← Previous</button>
+    </div>
+  `;
+}
+
+let quizAnswers = {};
+function answerQ(qi, chosen, correct, lessonIdx) {
+  if (quizAnswers[qi] !== undefined) return;
+  quizAnswers[qi] = chosen;
+
+  const chosenEl  = document.getElementById(`opt-${qi}-${chosen}`);
+  const correctEl = document.getElementById(`opt-${qi}-${correct}`);
+  const fb = document.getElementById(`fb-${qi}`);
+
+  correctEl.classList.add('correct');
+  if (chosen !== correct) { chosenEl.classList.add('wrong'); fb.textContent = '✗ Incorrect'; fb.style.color = 'var(--danger)'; }
+  else { fb.textContent = '✓ Correct!'; fb.style.color = 'var(--success)'; }
+
+  // Check if all answered
+  const lesson = currentCourse.lessons[lessonIdx];
+  if (Object.keys(quizAnswers).length === lesson.quiz.length) {
+    const score = lesson.quiz.filter((q,i) => quizAnswers[i] === q.ans).length;
+    const resultEl = document.getElementById('quiz-result');
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center">
+        <div style="font-size:1.2rem;font-weight:700">${score}/${lesson.quiz.length} Correct</div>
+        <div class="text-muted text-sm" style="margin:0.5rem 0">${score === lesson.quiz.length ? 'Perfect score! 🎉' : 'Good effort — review the lesson content and retry!'}</div>
+        <button class="btn btn-primary btn-sm" onclick="markDone(${lessonIdx});quizAnswers={}">
+          ${score === lesson.quiz.length ? 'Continue →' : 'Mark Done & Continue →'}
+        </button>
+      </div>
+    `;
+    quizAnswers = {};
+  }
+}
+
+// Init
+renderCourses(courses);
+</script>
+{% endblock %}
