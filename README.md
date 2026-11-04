@@ -138,5 +138,5 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
 ---
 
 <div align="center">
-  Built with ❤️ using IBM Granite &amp; Flask &nbsp;|&nbsp; Problem Statement #12
+  Built with Deligence using IBM Granite &amp; Flask &nbsp;|&nbsp; Problem Statement #12
 </div>
