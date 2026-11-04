@@ -120,21 +120,6 @@ learnmate-flask/
     └── progress.html       # Progress tracker
 ```
 
----
-## 📸 Application Screenshots
-
-### Home Page
-"D:\Projects\Agentic AI\Screenshots\Screenshot .png"
-
-### Dashboard
-"D:\Projects\Agentic AI\Screenshots\2.png"
-
-### AI Learning Coach
-"D:\Projects\Agentic AI\Screenshots\5.png"
-
-### Career Roadmap
-D:\Projects\Agentic AI\Screenshots\4.png
-
 ## 🔒 Security
 
 - All credentials are stored in **environment variables** — never hardcoded
