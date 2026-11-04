@@ -41,6 +41,8 @@ def get_granite_client():
         from ibm_watsonx_ai import APIClient, Credentials
         credentials = Credentials(url=url, api_key=api_key)
         client = APIClient(credentials, project_id=project_id)
+        # Pin API version — prevents SDK from auto-generating a future date
+        client.version = "2024-05-31"
         return client, project_id
     except Exception as e:
         print(f"[IBM] Client init error: {e}")
