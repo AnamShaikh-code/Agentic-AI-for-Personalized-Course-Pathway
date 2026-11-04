@@ -35,6 +35,18 @@
 
 ---
 
+## 📸 Screenshots
+
+| Landing Page | Dashboard |
+|---|---|
+| ![Home](screenshots/home.png) | ![Dashboard](screenshots/dashboard.png) |
+
+| AI Chat Coach | Learning Roadmap |
+|---|---|
+| ![Chat](screenshots/chat.png) | ![Roadmap](screenshots/roadmap.png) |
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Backend:** Python 3.13, Flask 3.0
