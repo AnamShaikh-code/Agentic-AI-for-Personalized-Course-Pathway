@@ -41,7 +41,7 @@
 |---|---|
 | ![Home](screenshots/home.png) | ![Dashboard](screenshots/dashboard.png) |
 
-| AI Chat Coach | Learning Roadmap |
+| Learning Roadmap | AI Chat Coach |
 |---|---|
 | ![Chat](screenshots/chat.png) | ![Roadmap](screenshots/roadmap.png) |
 
