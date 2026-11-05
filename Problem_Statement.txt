@@ -1,0 +1,18 @@
+## Problem Statement – Agentic AI for Personalized Course Pathways
+
+The Challenge
+Students often struggle to identify the right learning path that aligns with their interests and long-term goals due to the overwhelming number of online courses and a lack of personalized guidance. LearnMate aims to solve this by acting as an Agentic AI coach that interacts with students, understands their interests (like Frontend Development, Cybersecurity, UI/UX Design, etc.), assesses their current skill level, and dynamically builds a personalized course roadmap that adapts over time based on progress and preferences.
+
+The Objective
+Build an AI-powered Personalized Learning Agent that delivers customized learning pathways and career guidance for students, working professionals, and self-learners. The solution should:
+Personalized Learning Roadmaps – Recommend career-specific learning paths based on current skill level, career track, learning goals, and difficulty tier across 7 professional domains.
+Knowledge Retrieval & AI Guidance – Fetch and generate accurate learning content covering Data Science, Machine Learning, Deep Learning, NLP, SQL, Python, Statistics, and more using IBM Granite LLM.
+Skill Assessment & Feedback – Allow users to take adaptive quizzes, evaluate their knowledge level, and receive instant performance analysis with actionable next steps.
+Career Goal Focus – Suggest learning paths aligned with specific career goals such as Data Scientist, ML Engineer, Web Developer, Business Analyst, and more.
+Multi-Component Agentic System –
+AI Chat Coach (answers personalized learning queries)
+Skill Assessment Agent (evaluates and adjusts student level)
+Course Recommendation Agent (personalized course suggestions)
+Learning Roadmap Agent (structured career-track pathways)
+Visualization Dashboard – Display skill levels, XP points, learning streaks, completed courses, badges, and progress toward career goals in an interactive student dashboard.
+
